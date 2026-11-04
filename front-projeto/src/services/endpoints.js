@@ -1,0 +1,15 @@
+export const endpoints = {
+  health: '/actuator/health',
+  login: '/api/auth/login',
+  logout: '/api/auth/logout',
+  eu: '/api/auth/eu',
+  usuarios: '/api/usuarios',
+  usuario: (id) => `/api/usuarios/${id}`,
+  categorias: '/api/categorias',
+  categoria: (id) => `/api/categorias/${id}`,
+  produtos: '/api/produtos',
+  produto: (id) => `/api/produtos/${id}`,
+  pedidos: '/api/pedidos',
+  estorno: (id) => `/api/pedidos/${id}/estorno`,
+  analise: '/api/analise',
+}
