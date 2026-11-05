@@ -16,8 +16,10 @@ function agoraLocal() {
 }
 
 function Pedidos() {
+  const [categorias, setCategorias] = useState([])
   const [produtos, setProdutos] = useState([])
   const [pedidos, setPedidos] = useState([])
+  const [categoriaId, setCategoriaId] = useState('')
   const [produtoId, setProdutoId] = useState('')
   const [quantidade, setQuantidade] = useState('1')
   const [itens, setItens] = useState([])
@@ -27,10 +29,12 @@ function Pedidos() {
   const [aviso, setAviso] = useState('')
 
   async function carregar() {
-    const [listaProdutos, listaPedidos] = await Promise.all([
+    const [listaCategorias, listaProdutos, listaPedidos] = await Promise.all([
+      apiJson(endpoints.categorias),
       apiJson(endpoints.produtos),
       apiJson(endpoints.pedidos),
     ])
+    setCategorias(listaCategorias.filter((categoria) => categoria.ativa))
     setProdutos(listaProdutos.filter((produto) => produto.ativo))
     setPedidos(listaPedidos)
   }
@@ -39,15 +43,33 @@ function Pedidos() {
     carregar().catch((falha) => setErro(falha.message))
   }, [])
 
+  function escolherCategoria(valor) {
+    setCategoriaId(valor)
+    setProdutoId('')
+  }
+
   function incluirItem() {
-    const produto = produtos.find((item) => String(item.id) === produtoId)
-    if (!produto || Number(quantidade) < 1) {
+    const produto = produtosVisiveis.find((item) => String(item.id) === produtoId)
+    const qtd = Number(quantidade)
+    if (!produto || qtd < 1) {
       setErro('Escolha um produto e uma quantidade maior que zero.')
       return
     }
     setErro('')
-    setItens((atual) => [...atual, { produtoId: produto.id, nome: produto.nome, quantidade: Number(quantidade) }])
+    setItens((atual) => {
+      const indice = atual.findIndex((item) => item.produtoId === produto.id)
+      if (indice >= 0) {
+        return atual.map((item, i) => (
+          i === indice ? { ...item, quantidade: item.quantidade + qtd } : item
+        ))
+      }
+      return [...atual, { produtoId: produto.id, nome: produto.nome, quantidade: qtd }]
+    })
     setQuantidade('1')
+  }
+
+  function removerItem(id) {
+    setItens((atual) => atual.filter((item) => item.produtoId !== id))
   }
 
   async function salvar(evento) {
@@ -88,9 +110,18 @@ function Pedidos() {
     }
   }
 
+  const produtosVisiveis = categoriaId
+    ? produtos.filter((produto) => String(produto.categoriaId) === categoriaId)
+    : produtos
+
+  const opcoesCategoria = [
+    { valor: '', rotulo: 'Todas' },
+    ...categorias.map((categoria) => ({ valor: String(categoria.id), rotulo: categoria.nome })),
+  ]
+
   const opcoes = [
     { valor: '', rotulo: 'Selecione' },
-    ...produtos.map((produto) => ({ valor: String(produto.id), rotulo: produto.nome })),
+    ...produtosVisiveis.map((produto) => ({ valor: String(produto.id), rotulo: produto.nome })),
   ]
 
   return (
@@ -98,13 +129,17 @@ function Pedidos() {
       <div className="pagina">
         <CabecalhoPagina
           titulo="Pedidos"
-          descricao="O estorno guarda o motivo e tira a venda da matriz."
+          descricao="O mesmo produto no pedido soma a quantidade. O estorno guarda o motivo e tira a venda da matriz."
         />
         <MensagemErro texto={erro} />
         {aviso ? <p>{aviso}</p> : null}
         <section className="pagina__painel">
           <form className="formulario" onSubmit={salvar}>
             <FormField id="data" rotulo="Data e hora" tipo="datetime-local" valor={dataHora} onChange={setDataHora} obrigatorio />
+            <div>
+              <label htmlFor="categoria">Categoria</label>
+              <Select id="categoria" valor={categoriaId} onChange={escolherCategoria} opcoes={opcoesCategoria} />
+            </div>
             <div className="formulario__linha">
               <div>
                 <label htmlFor="produto">Produto</label>
@@ -112,10 +147,14 @@ function Pedidos() {
               </div>
               <FormField id="quantidade" rotulo="Quantidade" tipo="number" valor={quantidade} onChange={setQuantidade} />
             </div>
+            {categoriaId && produtosVisiveis.length === 0 ? <p>Nenhum produto ativo nesta categoria.</p> : null}
             <Botao texto="Adicionar item" variante="secundario" onClick={incluirItem} />
-            <ul>
-              {itens.map((item, indice) => (
-                <li key={`${item.produtoId}-${indice}`}>{item.quantidade} × {item.nome}</li>
+            <ul className="rascunho">
+              {itens.map((item) => (
+                <li key={item.produtoId}>
+                  <span>{item.quantidade} × {item.nome}</span>
+                  <Botao texto="Remover" variante="fantasma" onClick={() => removerItem(item.produtoId)} />
+                </li>
               ))}
             </ul>
             <Botao texto="Registrar pedido" tipo="submit" desabilitado={itens.length === 0} />

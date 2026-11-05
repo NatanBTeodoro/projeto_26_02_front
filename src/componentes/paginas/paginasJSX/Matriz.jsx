@@ -6,7 +6,7 @@ import Botao from '../../atomos/atomosJSX/Botao'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
-import { formatarMoeda, rotuloClasse } from '../../../utils/formatacao'
+import { formatarMoeda, LEGENDAS_CLASSE, rotuloClasse } from '../../../utils/formatacao'
 
 function iso(data) {
   const mes = String(data.getMonth() + 1).padStart(2, '0')
@@ -41,6 +41,16 @@ function Matriz() {
           descricao="Popularidade, margem e classe são calculadas no servidor para o período."
         />
         <MensagemErro texto={erro} />
+        <section className="pagina__painel">
+          <h2>O que cada classe significa</h2>
+          <ul className="legenda">
+            {LEGENDAS_CLASSE.map(([classe, texto]) => (
+              <li key={classe}>
+                <strong>{rotuloClasse(classe)}.</strong> {texto}
+              </li>
+            ))}
+          </ul>
+        </section>
         <form className="formulario pagina__painel" onSubmit={consultar}>
           <div className="formulario__linha">
             <FormField id="de" rotulo="De" tipo="date" valor={de} onChange={setDe} obrigatorio />

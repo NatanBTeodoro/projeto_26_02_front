@@ -55,6 +55,41 @@
   align-items: center;
 }
 
+.legenda {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legenda li {
+  margin: 0;
+}
+
+.legenda strong {
+  display: inline-block;
+  min-width: 8.5rem;
+}
+
+.rascunho {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rascunho li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0;
+}
+
 .formulario__linha {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

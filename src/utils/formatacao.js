@@ -3,9 +3,16 @@ const ROTULOS_CLASSE = {
   VACA_LEITEIRA: 'Vaca leiteira',
   ENIGMA: 'Enigma',
   CAO: 'Cão',
-  EM_OBSERVACAO: 'Em observação',
   DADO_INCOMPLETO: 'Dado incompleto',
 }
+
+export const LEGENDAS_CLASSE = [
+  ['ESTRELA', 'Popular e com margem alta. É o item que sustenta o cardápio.'],
+  ['VACA_LEITEIRA', 'Popular, mas com margem baixa. Vende bem e rende pouco.'],
+  ['ENIGMA', 'Pouco popular e com margem alta. Rende bem e sai pouco.'],
+  ['CAO', 'Pouco popular e com margem baixa. Sai pouco e rende pouco.'],
+  ['DADO_INCOMPLETO', 'Sem custo cadastrado. Fica de fora da classificação até o custo ser informado.'],
+]
 
 const ROTULOS_PERFIL = {
   ADMINISTRADOR: 'Administrador',
