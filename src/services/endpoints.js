@@ -12,4 +12,6 @@ export const endpoints = {
   pedidos: '/api/pedidos',
   estorno: (id) => `/api/pedidos/${id}/estorno`,
   analise: '/api/analise',
+  analiseCsv: '/api/analise/exportar',
+  dashboard: '/api/dashboard',
 }

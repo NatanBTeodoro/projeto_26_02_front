@@ -21,7 +21,7 @@ function Login() {
         body: JSON.stringify(dados),
       })
       gravarSessao(usuario)
-      window.location.href = '/produtos'
+      window.location.href = '/dashboard'
     } catch (falha) {
       setErroApi(falha.message || 'Erro de conexão. Tente novamente.')
     } finally {

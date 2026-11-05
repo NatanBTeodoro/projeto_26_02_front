@@ -2,9 +2,11 @@ import { useState } from 'react'
 import TemplateAutenticado from '../../templates/templatesJSX/TemplateAutenticado'
 import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import FormField from '../../moleculas/moleculasJSX/FormField'
+import Select from '../../atomos/atomosJSX/Select'
 import Botao from '../../atomos/atomosJSX/Botao'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
-import { apiJson } from '../../../services/api'
+import GraficoMatriz from '../../organismos/organismosJSX/GraficoMatriz'
+import { apiArquivo, apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { formatarMoeda, LEGENDAS_CLASSE, rotuloClasse } from '../../../utils/formatacao'
 
@@ -19,6 +21,7 @@ function Matriz() {
   const [de, setDe] = useState(iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1)))
   const [ate, setAte] = useState(iso(hoje))
   const [resultado, setResultado] = useState(null)
+  const [classeFiltro, setClasseFiltro] = useState('')
   const [erro, setErro] = useState('')
 
   async function consultar(evento) {
@@ -29,6 +32,21 @@ function Matriz() {
       setResultado(corpo)
     } catch (falha) {
       setResultado(null)
+      setErro(falha.message)
+    }
+  }
+
+  async function exportar() {
+    setErro('')
+    try {
+      const blob = await apiArquivo(`${endpoints.analiseCsv}?de=${de}&ate=${ate}`)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `matriz-${de}_a_${ate}.csv`
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch (falha) {
       setErro(falha.message)
     }
   }
@@ -56,36 +74,64 @@ function Matriz() {
             <FormField id="de" rotulo="De" tipo="date" valor={de} onChange={setDe} obrigatorio />
             <FormField id="ate" rotulo="Até" tipo="date" valor={ate} onChange={setAte} obrigatorio />
           </div>
-          <Botao texto="Calcular" tipo="submit" />
+          <div className="formulario__acoes">
+            <Botao texto="Calcular" tipo="submit" />
+            <Botao texto="Baixar CSV" variante="secundario" onClick={exportar} />
+          </div>
         </form>
         {resultado ? (
-          <section className="pagina__painel">
-            <p>
-              {resultado.quantidadePedidos} pedidos · receita {formatarMoeda(resultado.receita)} · ticket médio {formatarMoeda(resultado.ticketMedio)}
-            </p>
-            <table className="tabela">
-              <thead>
-                <tr>
-                  <th>Produto</th>
-                  <th>Quantidade</th>
-                  <th>Popularidade</th>
-                  <th>Margem</th>
-                  <th>Classe</th>
-                </tr>
-              </thead>
-              <tbody>
-                {resultado.itens.map((item) => (
-                  <tr key={item.produtoId}>
-                    <td>{item.nome}</td>
-                    <td>{item.quantidade}</td>
-                    <td>{item.popularidade}%</td>
-                    <td>{formatarMoeda(item.margem)}</td>
-                    <td>{rotuloClasse(item.classe)}</td>
+          <>
+            <section className="pagina__painel">
+              <h2>Gráfico</h2>
+              <GraficoMatriz analise={resultado} />
+            </section>
+            <section className="pagina__painel">
+              <p>
+                {resultado.quantidadePedidos} pedidos · receita {formatarMoeda(resultado.receita)} · ticket médio {formatarMoeda(resultado.ticketMedio)}
+              </p>
+              <p>A sugestão depende só da classe. É uma orientação do método, não uma garantia de resultado.</p>
+              <div>
+                <label htmlFor="classe">Mostrar</label>
+                <Select
+                  id="classe"
+                  valor={classeFiltro}
+                  onChange={setClasseFiltro}
+                  opcoes={[
+                    { valor: '', rotulo: 'Todas as classes' },
+                    ...LEGENDAS_CLASSE.map(([classe]) => ({ valor: classe, rotulo: rotuloClasse(classe) })),
+                  ]}
+                />
+              </div>
+              <table className="tabela">
+                <thead>
+                  <tr>
+                    <th>Produto</th>
+                    <th>Categoria</th>
+                    <th>Quantidade</th>
+                    <th>Popularidade</th>
+                    <th>Margem</th>
+                    <th>Classe</th>
+                    <th>Sugestão</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
+                </thead>
+                <tbody>
+                  {resultado.itens
+                    .filter((item) => !classeFiltro || item.classe === classeFiltro)
+                    .map((item) => (
+                      <tr key={item.produtoId}>
+                        <td>{item.nome}</td>
+                        <td>{item.categoria}</td>
+                        <td>{item.quantidade}</td>
+                        <td>{item.popularidade}%</td>
+                        <td>{formatarMoeda(item.margem)}</td>
+                        <td><span className={`selo selo--${item.classe}`}>{rotuloClasse(item.classe)}</span></td>
+                        <td>{item.recomendacao}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </section>
+          </>
         ) : null}
       </div>
     </TemplateAutenticado>

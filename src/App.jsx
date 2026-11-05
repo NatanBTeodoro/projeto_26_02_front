@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { RotaAutenticada } from './rotas/RotasProtegidas'
 import Login from './componentes/paginas/paginasJSX/Login'
+import Dashboard from './componentes/paginas/paginasJSX/Dashboard'
 import Produtos from './componentes/paginas/paginasJSX/Produtos'
 import Pedidos from './componentes/paginas/paginasJSX/Pedidos'
 import Matriz from './componentes/paginas/paginasJSX/Matriz'
@@ -15,7 +16,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Navigate to="/produtos" replace />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={proteger(<Dashboard />)} />
         <Route path="/produtos" element={proteger(<Produtos />)} />
         <Route path="/pedidos" element={proteger(<Pedidos />)} />
         <Route path="/matriz" element={proteger(<Matriz />)} />

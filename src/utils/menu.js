@@ -4,6 +4,7 @@ export const SECOES_MENU = [
   {
     titulo: 'Cardápio',
     itens: [
+      { href: '/dashboard', rotulo: 'Painel', perfis: AMBOS },
       { href: '/produtos', rotulo: 'Produtos', perfis: AMBOS },
       { href: '/pedidos', rotulo: 'Pedidos', perfis: AMBOS },
       { href: '/matriz', rotulo: 'Matriz', perfis: AMBOS },

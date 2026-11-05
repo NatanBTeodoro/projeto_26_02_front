@@ -63,3 +63,30 @@ export async function apiJson(caminho, opcoes = {}) {
 
   return corpo
 }
+
+export async function apiArquivo(caminho) {
+  const response = await apiFetch(caminho, {
+    headers: { Accept: 'text/csv, application/json' },
+  })
+  if (!response.ok) {
+    const texto = await response.text()
+    let corpo = null
+    if (texto) {
+      try {
+        corpo = JSON.parse(texto)
+      } catch {
+        corpo = { mensagem: texto }
+      }
+    }
+    if (response.status === 401) {
+      limparSessao()
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login'
+      }
+    }
+    const erro = new Error(mensagemDoCorpo(corpo, response.status))
+    erro.status = response.status
+    throw erro
+  }
+  return response.blob()
+}

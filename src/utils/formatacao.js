@@ -6,6 +6,14 @@ const ROTULOS_CLASSE = {
   DADO_INCOMPLETO: 'Dado incompleto',
 }
 
+export const CORES_CLASSE = {
+  ESTRELA: '#2e7d32',
+  VACA_LEITEIRA: '#1565c0',
+  ENIGMA: '#f9a825',
+  CAO: '#c62828',
+  DADO_INCOMPLETO: '#616161',
+}
+
 export const LEGENDAS_CLASSE = [
   ['ESTRELA', 'Popular e com margem alta. É o item que sustenta o cardápio.'],
   ['VACA_LEITEIRA', 'Popular, mas com margem baixa. Vende bem e rende pouco.'],

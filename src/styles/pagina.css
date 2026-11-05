@@ -82,6 +82,49 @@
   list-style: none;
 }
 
+.selo {
+  display: inline-block;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.85rem;
+  background: var(--cor-texto, #333);
+}
+
+.selo--ESTRELA { background: #2e7d32; }
+.selo--VACA_LEITEIRA { background: #1565c0; }
+.selo--ENIGMA { background: #f9a825; color: #1a1a1a; }
+.selo--CAO { background: #c62828; }
+.selo--DADO_INCOMPLETO { background: #616161; }
+
+.cartoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.cartao {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cartao strong {
+  font-size: 1.35rem;
+}
+
+.grafico {
+  width: 100%;
+  height: 420px;
+}
+
+.grafico__dica {
+  background: var(--cor-superficie, #fff);
+  border: 1px solid var(--cor-linha, #ccc);
+  border-radius: var(--raio, 8px);
+  padding: 0.55rem 0.7rem;
+}
+
 .rascunho li {
   display: flex;
   flex-wrap: wrap;
