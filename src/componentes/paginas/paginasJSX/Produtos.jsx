@@ -8,6 +8,7 @@ import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { formatarBooleano, formatarMoeda } from '../../../utils/formatacao'
+import ImportarCardapio from '../../organismos/organismosJSX/ImportarCardapio'
 
 const produtoVazio = {
   categoriaId: '',
@@ -142,6 +143,7 @@ function Produtos() {
         />
         <MensagemErro texto={erro} />
         {aviso ? <p>{aviso}</p> : null}
+        <ImportarCardapio aoConcluir={carregar} />
         <div className="pagina__grade pagina__grade--lateral">
           <section className="pagina__painel">
             <form className="formulario" onSubmit={criarCategoria}>

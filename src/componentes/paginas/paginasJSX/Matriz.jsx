@@ -102,6 +102,7 @@ function Matriz() {
                   ]}
                 />
               </div>
+              <div className="tabela-rolagem">
               <table className="tabela">
                 <thead>
                   <tr>
@@ -110,7 +111,7 @@ function Matriz() {
                     <th>Quantidade</th>
                     <th>Popularidade</th>
                     <th>Margem</th>
-                    <th>Classe</th>
+                    <th className="tabela__classe">Classe</th>
                     <th>Sugestão</th>
                   </tr>
                 </thead>
@@ -124,12 +125,13 @@ function Matriz() {
                         <td>{item.quantidade}</td>
                         <td>{item.popularidade}%</td>
                         <td>{formatarMoeda(item.margem)}</td>
-                        <td><span className={`selo selo--${item.classe}`}>{rotuloClasse(item.classe)}</span></td>
+                        <td className="tabela__classe"><span className={`selo selo--${item.classe}`}>{rotuloClasse(item.classe)}</span></td>
                         <td>{item.recomendacao}</td>
                       </tr>
                     ))}
                 </tbody>
               </table>
+              </div>
             </section>
           </>
         ) : null}
