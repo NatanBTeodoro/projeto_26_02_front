@@ -16,14 +16,17 @@ import Logo from '../../atomos/atomosJSX/Logo'
 import Badge from '../../atomos/atomosJSX/Badge'
 import Botao from '../../atomos/atomosJSX/Botao'
 import NavItem from '../../moleculas/moleculasJSX/NavItem'
-import { SECOES_MENU, itemPermitido } from '../../../utils/menu'
-import { lerSessao } from '../../../utils/sessao'
+import { menuDe } from '../../../utils/menu'
+import { emVisaoGestor, lerSessao, lerVisao } from '../../../utils/sessao'
 import { rotuloPerfil } from '../../../utils/formatacao'
 import '../organismosCSS/Navbar.css'
 
 function Navbar({ perfil, rotaAtual, onSair }) {
   const [aberto, setAberto] = useState(false)
   const sessao = lerSessao()
+  const visao = lerVisao()
+  const emVisao = emVisaoGestor()
+  const secoes = menuDe(emVisao ? 'GESTOR' : perfil)
 
   return (
     <>
@@ -39,11 +42,12 @@ function Navbar({ perfil, rotaAtual, onSair }) {
           </button>
         </div>
         <p className="navbar__usuario">
-          <span>{sessao.usuarioEmail || 'Sessão local'}</span>
-          <Badge texto={rotuloPerfil(perfil)} variante="marca" />
+          <span>{sessao.usuarioNome || sessao.usuarioEmail || 'Sessão local'}</span>
+          <Badge texto={emVisao ? 'Admin · visão de gestor' : rotuloPerfil(perfil)} variante="marca" />
+          {emVisao ? <span>{visao.restauranteNome}</span> : null}
         </p>
         <nav className="navbar__menu">
-          {SECOES_MENU.map((secao) => (
+          {secoes.map((secao) => (
             <div key={secao.titulo} className="navbar__secao">
               <p className="navbar__secao-titulo">{secao.titulo}</p>
               {secao.itens.map((item) => (
@@ -52,7 +56,6 @@ function Navbar({ perfil, rotaAtual, onSair }) {
                   href={item.href}
                   texto={item.rotulo}
                   ativo={rotaAtual === item.href}
-                  restrito={!itemPermitido(item, perfil)}
                   onClick={() => setAberto(false)}
                 />
               ))}

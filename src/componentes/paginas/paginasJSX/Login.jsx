@@ -5,7 +5,7 @@ import TemplatePublico from '../../templates/templatesJSX/TemplatePublico'
 import FormLogin from '../../organismos/organismosJSX/FormLogin'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
-import { gravarSessao } from '../../../utils/sessao'
+import { destinoInicial, gravarSessao, limparSessao } from '../../../utils/sessao'
 import '../paginasCSS/Login.css'
 
 function Login() {
@@ -20,8 +20,9 @@ function Login() {
         method: 'POST',
         body: JSON.stringify(dados),
       })
+      limparSessao()
       gravarSessao(usuario)
-      window.location.href = '/dashboard'
+      window.location.href = destinoInicial(usuario.perfil)
     } catch (falha) {
       setErroApi(falha.message || 'Erro de conexão. Tente novamente.')
     } finally {

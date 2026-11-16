@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import TemplateAutenticado from '../../templates/templatesJSX/TemplateAutenticado'
 import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import FormField from '../../moleculas/moleculasJSX/FormField'
@@ -8,6 +9,7 @@ import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { formatarBooleano, formatarMoeda } from '../../../utils/formatacao'
+import { emVisaoGestor, lerSessao, visaoBloqueada } from '../../../utils/sessao'
 import ImportarCardapio from '../../organismos/organismosJSX/ImportarCardapio'
 
 const produtoVazio = {
@@ -25,6 +27,9 @@ function Produtos() {
   const [editando, setEditando] = useState(null)
   const [erro, setErro] = useState('')
   const [aviso, setAviso] = useState('')
+  const [pagina, setPagina] = useState(0)
+  const bloqueado = visaoBloqueada()
+  const tamanho = 10
 
   async function carregar() {
     const [listaCategorias, listaProdutos] = await Promise.all([
@@ -126,6 +131,10 @@ function Produtos() {
     }
   }
 
+  const totalPaginas = Math.max(1, Math.ceil(produtos.length / tamanho))
+  const paginaAtual = Math.min(pagina, totalPaginas - 1)
+  const produtosPagina = produtos.slice(paginaAtual * tamanho, paginaAtual * tamanho + tamanho)
+
   const opcoesCategoria = [
     { valor: '', rotulo: 'Selecione' },
     ...categorias.filter((categoria) => categoria.ativa).map((categoria) => ({
@@ -134,36 +143,45 @@ function Produtos() {
     })),
   ]
 
+  if (lerSessao().perfil === 'ADMINISTRADOR' && !emVisaoGestor()) {
+    return <Navigate to="/restaurantes" replace />
+  }
+
   return (
     <TemplateAutenticado rotaAtual="/produtos">
       <div className="pagina">
         <CabecalhoPagina
           titulo="Produtos"
-          descricao="Categorias e cardápio. O custo digitado aqui entra nos pedidos novos."
+          descricao="Categorias e cardápio, com até 10 produtos por página. O custo digitado aqui entra nos pedidos novos."
         />
         <MensagemErro texto={erro} />
         {aviso ? <p>{aviso}</p> : null}
-        <ImportarCardapio aoConcluir={carregar} />
+        {bloqueado ? <p>Restaurante fechado ou inativo: o cardápio pode ser consultado, mas não alterado.</p> : <ImportarCardapio aoConcluir={carregar} />}
         <div className="pagina__grade pagina__grade--lateral">
           <section className="pagina__painel">
+            {bloqueado ? null : (
             <form className="formulario" onSubmit={criarCategoria}>
               <FormField id="categoria" rotulo="Nova categoria" valor={nomeCategoria} onChange={setNomeCategoria} obrigatorio />
               <Botao texto="Salvar categoria" tipo="submit" />
             </form>
+            )}
             <ul>
               {categorias.map((categoria) => (
                 <li key={categoria.id}>
                   {categoria.nome} ({formatarBooleano(categoria.ativa)}){' '}
+                  {bloqueado ? null : (
                   <Botao
                     texto={categoria.ativa ? 'Inativar' : 'Reativar'}
                     variante="fantasma"
                     onClick={() => alternarCategoria(categoria)}
                   />
+                  )}
                 </li>
               ))}
             </ul>
           </section>
           <section className="pagina__painel">
+            {bloqueado ? null : (
             <form className="formulario" onSubmit={salvarProduto}>
               <label htmlFor="categoria-produto">Categoria</label>
               <Select id="categoria-produto" valor={form.categoriaId} onChange={(valor) => alterar('categoriaId', valor)} opcoes={opcoesCategoria} />
@@ -179,6 +197,7 @@ function Produtos() {
                 ) : null}
               </div>
             </form>
+            )}
             <table className="tabela">
               <thead>
                 <tr>
@@ -191,7 +210,7 @@ function Produtos() {
                 </tr>
               </thead>
               <tbody>
-                {produtos.map((produto) => (
+                {produtosPagina.map((produto) => (
                   <tr key={produto.id}>
                     <td>{produto.nome}</td>
                     <td>{produto.categoriaNome}</td>
@@ -199,13 +218,28 @@ function Produtos() {
                     <td>{formatarMoeda(produto.custoAtual)}</td>
                     <td>{formatarBooleano(produto.ativo)}</td>
                     <td>
-                      <Botao texto="Editar" variante="secundario" onClick={() => editar(produto)} />
-                      <Botao texto={produto.ativo ? 'Inativar' : 'Reativar'} variante="fantasma" onClick={() => alternarProduto(produto)} />
+                      {bloqueado ? null : (
+                        <>
+                          <Botao texto="Editar" variante="secundario" onClick={() => editar(produto)} />
+                          <Botao texto={produto.ativo ? 'Inativar' : 'Reativar'} variante="fantasma" onClick={() => alternarProduto(produto)} />
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            <div className="paginas-numeradas">
+              {Array.from({ length: totalPaginas }, (_, indice) => (
+                <Botao
+                  key={indice}
+                  texto={String(indice + 1)}
+                  variante={indice === paginaAtual ? 'primario' : 'fantasma'}
+                  onClick={() => setPagina(indice)}
+                />
+              ))}
+            </div>
+            <p>Página {paginaAtual + 1} de {totalPaginas} · até 10 produtos por página</p>
           </section>
         </div>
       </div>

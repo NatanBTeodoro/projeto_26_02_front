@@ -11,6 +11,19 @@
   flex-direction: column;
 }
 
+.visao-gestor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.8rem var(--padding-pagina) 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--raio);
+  background: rgba(196, 92, 38, 0.12);
+  border: 1px solid var(--cor-linha);
+}
+
 .template-autenticado__main {
   flex: 1;
   width: min(100%, var(--largura-conteudo));

@@ -1,18 +1,49 @@
-const AMBOS = ['ADMINISTRADOR', 'GESTOR']
+const MENUS = {
+  TI: [
+    {
+      titulo: 'TI',
+      itens: [
+        { href: '/admins', rotulo: 'Admins' },
+        { href: '/perfil', rotulo: 'Perfil' },
+      ],
+    },
+  ],
+  ADMINISTRADOR: [
+    {
+      titulo: 'Admin',
+      itens: [
+        { href: '/dashboard', rotulo: 'Dashboard' },
+        { href: '/matriz', rotulo: 'Matriz' },
+        { href: '/restaurantes', rotulo: 'Restaurantes' },
+        { href: '/cadastros', rotulo: 'Cadastros' },
+        { href: '/perfil', rotulo: 'Perfil' },
+      ],
+    },
+  ],
+  GESTOR: [
+    {
+      titulo: 'Gestor',
+      itens: [
+        { href: '/dashboard', rotulo: 'Dashboard' },
+        { href: '/produtos', rotulo: 'Produtos' },
+        { href: '/pedidos', rotulo: 'Pedidos' },
+        { href: '/cadastros', rotulo: 'Cadastros' },
+        { href: '/perfil', rotulo: 'Perfil' },
+      ],
+    },
+  ],
+  USUARIO: [
+    {
+      titulo: 'Usuário',
+      itens: [
+        { href: '/dashboard', rotulo: 'Dashboard' },
+        { href: '/pedidos', rotulo: 'Pedidos' },
+        { href: '/perfil', rotulo: 'Perfil' },
+      ],
+    },
+  ],
+}
 
-export const SECOES_MENU = [
-  {
-    titulo: 'Cardápio',
-    itens: [
-      { href: '/dashboard', rotulo: 'Painel', perfis: AMBOS },
-      { href: '/produtos', rotulo: 'Produtos', perfis: AMBOS },
-      { href: '/pedidos', rotulo: 'Pedidos', perfis: AMBOS },
-      { href: '/matriz', rotulo: 'Matriz', perfis: AMBOS },
-      { href: '/usuarios', rotulo: 'Usuários', perfis: ['ADMINISTRADOR'] },
-    ],
-  },
-]
-
-export function itemPermitido(item, perfil) {
-  return item.perfis.includes(perfil)
+export function menuDe(perfil) {
+  return MENUS[perfil] || []
 }

@@ -1,14 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import TemplateAutenticado from '../../templates/templatesJSX/TemplateAutenticado'
 import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import FormField from '../../moleculas/moleculasJSX/FormField'
 import Select from '../../atomos/atomosJSX/Select'
 import Botao from '../../atomos/atomosJSX/Botao'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
-import GraficoMatriz from '../../organismos/organismosJSX/GraficoMatriz'
-import { apiArquivo, apiJson } from '../../../services/api'
+import GraficoCurvaAbc from '../../organismos/organismosJSX/GraficoCurvaAbc'
+import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
-import { formatarMoeda, LEGENDAS_CLASSE, rotuloClasse } from '../../../utils/formatacao'
+import { formatarBooleano, formatarMoeda, formatarPercentual, rotuloPerfil } from '../../../utils/formatacao'
 
 function iso(data) {
   const mes = String(data.getMonth() + 1).padStart(2, '0')
@@ -16,124 +16,154 @@ function iso(data) {
   return `${data.getFullYear()}-${mes}-${dia}`
 }
 
+function rotuloRestaurante(restaurante) {
+  if (restaurante.status === 'FECHADO') return `${restaurante.nome} (Fechado)`
+  if (restaurante.status === 'INATIVO') return `${restaurante.nome} (Inativo)`
+  return restaurante.nome
+}
+
 function Matriz() {
   const hoje = new Date()
   const [de, setDe] = useState(iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1)))
   const [ate, setAte] = useState(iso(hoje))
-  const [resultado, setResultado] = useState(null)
-  const [classeFiltro, setClasseFiltro] = useState('')
+  const [restaurantes, setRestaurantes] = useState([])
+  const [restauranteId, setRestauranteId] = useState('')
+  const [curva, setCurva] = useState(null)
+  const [equipe, setEquipe] = useState([])
+  const [mostrarFaixas, setMostrarFaixas] = useState(false)
   const [erro, setErro] = useState('')
+
+  useEffect(() => {
+    apiJson(endpoints.restaurantes)
+      .then((lista) => {
+        setRestaurantes(lista)
+        if (lista[0]) setRestauranteId(String(lista[0].id))
+      })
+      .catch((falha) => setErro(falha.message))
+  }, [])
 
   async function consultar(evento) {
     evento.preventDefault()
     setErro('')
+    if (!restauranteId) {
+      setErro('Escolha o restaurante.')
+      return
+    }
     try {
-      const corpo = await apiJson(`${endpoints.analise}?de=${de}&ate=${ate}`)
-      setResultado(corpo)
+      const [corpo, pessoas] = await Promise.all([
+        apiJson(`${endpoints.curvaProdutos}?de=${de}&ate=${ate}&restauranteId=${restauranteId}`),
+        apiJson(`${endpoints.usuarios}?restauranteId=${restauranteId}`),
+      ])
+      setCurva(corpo)
+      setEquipe(pessoas)
     } catch (falha) {
-      setResultado(null)
+      setCurva(null)
+      setEquipe([])
       setErro(falha.message)
     }
   }
 
-  async function exportar() {
-    setErro('')
-    try {
-      const blob = await apiArquivo(`${endpoints.analiseCsv}?de=${de}&ate=${ate}`)
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `matriz-${de}_a_${ate}.csv`
-      link.click()
-      URL.revokeObjectURL(url)
-    } catch (falha) {
-      setErro(falha.message)
-    }
-  }
+  const escolhido = restaurantes.find((restaurante) => String(restaurante.id) === restauranteId)
 
   return (
     <TemplateAutenticado rotaAtual="/matriz">
       <div className="pagina">
         <CabecalhoPagina
           titulo="Matriz"
-          descricao="Popularidade, margem e classe são calculadas no servidor para o período."
+          descricao="Curva ABC de lucro por produto do restaurante escolhido. Restaurante fechado aparece com essa indicação e não é editável."
         />
         <MensagemErro texto={erro} />
-        <section className="pagina__painel">
-          <h2>O que cada classe significa</h2>
-          <ul className="legenda">
-            {LEGENDAS_CLASSE.map(([classe, texto]) => (
-              <li key={classe}>
-                <strong>{rotuloClasse(classe)}.</strong> {texto}
-              </li>
-            ))}
-          </ul>
-        </section>
         <form className="formulario pagina__painel" onSubmit={consultar}>
+          <label htmlFor="restaurante">Restaurante</label>
+          <Select
+            id="restaurante"
+            valor={restauranteId}
+            onChange={setRestauranteId}
+            opcoes={[
+              { valor: '', rotulo: 'Selecione' },
+              ...restaurantes.map((restaurante) => ({
+                valor: String(restaurante.id),
+                rotulo: rotuloRestaurante(restaurante),
+              })),
+            ]}
+          />
           <div className="formulario__linha">
             <FormField id="de" rotulo="De" tipo="date" valor={de} onChange={setDe} obrigatorio />
             <FormField id="ate" rotulo="Até" tipo="date" valor={ate} onChange={setAte} obrigatorio />
           </div>
-          <div className="formulario__acoes">
-            <Botao texto="Calcular" tipo="submit" />
-            <Botao texto="Baixar CSV" variante="secundario" onClick={exportar} />
-          </div>
+          <label>
+            <input
+              type="checkbox"
+              checked={mostrarFaixas}
+              onChange={(evento) => setMostrarFaixas(evento.target.checked)}
+            />
+            {' '}Mostrar faixas A, B e C
+          </label>
+          <Botao texto="Calcular" tipo="submit" />
         </form>
-        {resultado ? (
-          <>
-            <section className="pagina__painel">
-              <h2>Gráfico</h2>
-              <GraficoMatriz analise={resultado} />
-            </section>
-            <section className="pagina__painel">
+        {escolhido?.status === 'FECHADO' ? <p>Este restaurante está fechado e não pode ser editado.</p> : null}
+        {curva ? (
+          <section className="pagina__painel">
+            <h2>Curva ABC por produto</h2>
+            <p>Lucro bruto: {formatarMoeda(curva.lucroBruto)}</p>
+            {curva.linhasSemCusto > 0 ? (
               <p>
-                {resultado.quantidadePedidos} pedidos · receita {formatarMoeda(resultado.receita)} · ticket médio {formatarMoeda(resultado.ticketMedio)}
+                {curva.linhasSemCusto} item(ns) sem custo ficaram fora do lucro.
+                {curva.foraDaCurva?.length ? ` Fora da curva: ${curva.foraDaCurva.join(', ')}.` : ''}
               </p>
-              <p>A sugestão depende só da classe. É uma orientação do método, não uma garantia de resultado.</p>
-              <div>
-                <label htmlFor="classe">Mostrar</label>
-                <Select
-                  id="classe"
-                  valor={classeFiltro}
-                  onChange={setClasseFiltro}
-                  opcoes={[
-                    { valor: '', rotulo: 'Todas as classes' },
-                    ...LEGENDAS_CLASSE.map(([classe]) => ({ valor: classe, rotulo: rotuloClasse(classe) })),
-                  ]}
-                />
-              </div>
-              <div className="tabela-rolagem">
+            ) : null}
+            <GraficoCurvaAbc itens={curva.itens} mostrarFaixas={mostrarFaixas} />
+            <div className="tabela-rolagem">
               <table className="tabela">
                 <thead>
                   <tr>
                     <th>Produto</th>
-                    <th>Categoria</th>
-                    <th>Quantidade</th>
-                    <th>Popularidade</th>
-                    <th>Margem</th>
-                    <th className="tabela__classe">Classe</th>
-                    <th>Sugestão</th>
+                    <th>Lucro</th>
+                    <th>Participação</th>
+                    <th>Acumulado</th>
+                    {mostrarFaixas ? <th>Faixa</th> : null}
                   </tr>
                 </thead>
                 <tbody>
-                  {resultado.itens
-                    .filter((item) => !classeFiltro || item.classe === classeFiltro)
-                    .map((item) => (
-                      <tr key={item.produtoId}>
-                        <td>{item.nome}</td>
-                        <td>{item.categoria}</td>
-                        <td>{item.quantidade}</td>
-                        <td>{item.popularidade}%</td>
-                        <td>{formatarMoeda(item.margem)}</td>
-                        <td className="tabela__classe"><span className={`selo selo--${item.classe}`}>{rotuloClasse(item.classe)}</span></td>
-                        <td>{item.recomendacao}</td>
-                      </tr>
-                    ))}
+                  {curva.itens.map((item) => (
+                    <tr key={item.id}>
+                      <td>{item.nome}{item.dadoIncompleto ? ' (dado incompleto)' : ''}</td>
+                      <td>{formatarMoeda(item.lucro)}</td>
+                      <td>{formatarPercentual(item.participacao)}</td>
+                      <td>{formatarPercentual(item.acumulado)}</td>
+                      {mostrarFaixas ? <td>{item.faixa}</td> : null}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
-              </div>
-            </section>
-          </>
+            </div>
+          </section>
+        ) : null}
+        {curva ? (
+          <section className="pagina__painel">
+            <h2>Gestores e usuários</h2>
+            <table className="tabela">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>E-mail</th>
+                  <th>Perfil</th>
+                  <th>Ativo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {equipe.map((pessoa) => (
+                  <tr key={pessoa.id}>
+                    <td>{pessoa.nome}</td>
+                    <td>{pessoa.email}</td>
+                    <td>{rotuloPerfil(pessoa.perfil)}</td>
+                    <td>{formatarBooleano(pessoa.ativo)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {equipe.length === 0 ? <p>Ninguém cadastrado neste restaurante.</p> : null}
+          </section>
         ) : null}
       </div>
     </TemplateAutenticado>

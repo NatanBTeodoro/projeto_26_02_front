@@ -150,6 +150,12 @@
   height: 420px;
 }
 
+.paginas-numeradas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
 .grafico__dica {
   background: var(--cor-superficie, #fff);
   border: 1px solid var(--cor-linha, #ccc);

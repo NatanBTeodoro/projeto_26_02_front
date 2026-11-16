@@ -23,15 +23,18 @@ export const LEGENDAS_CLASSE = [
 ]
 
 const ROTULOS_PERFIL = {
-  ADMINISTRADOR: 'Administrador',
+  TI: 'TI',
+  ADMINISTRADOR: 'Admin',
   GESTOR: 'Gestor',
-  OPERADOR: 'Operador',
-  ANALISTA: 'Analista',
+  USUARIO: 'Usuário',
 }
 
 const ROTULOS_STATUS = {
   ATIVO: 'Ativo',
+  INATIVO: 'Inativo',
+  FECHADO: 'Fechado',
   ESTORNADO: 'Estornado',
+  CANCELADO: 'Cancelado',
   PENDENTE: 'Pendente',
   EM_EXECUCAO: 'Em execução',
   CONCLUIDA: 'Concluída',
@@ -45,6 +48,13 @@ const ROTULOS_STATUS = {
   MES: 'Mês',
   TRIMESTRE: 'Trimestre',
   ANO: 'Ano',
+}
+
+export function formatarPercentual(valor) {
+  if (valor === null || valor === undefined || valor === '') return '—'
+  const numero = Number(valor)
+  if (Number.isNaN(numero)) return String(valor)
+  return `${numero.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
 }
 
 export function formatarMoeda(valor) {

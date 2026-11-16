@@ -19,6 +19,10 @@ export async function apiFetch(caminho, opcoes = {}) {
   if (token && !caminho.includes('/api/auth/login') && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`)
   }
+  const restauranteId = localStorage.getItem('restauranteId')
+  if (restauranteId && !caminho.includes('/api/auth/login') && !headers.has('X-Restaurante-Id')) {
+    headers.set('X-Restaurante-Id', restauranteId)
+  }
 
   return fetch(`${API_BASE}${caminho}`, {
     ...opcoes,
