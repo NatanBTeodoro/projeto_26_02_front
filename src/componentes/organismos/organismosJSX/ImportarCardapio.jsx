@@ -39,7 +39,13 @@ function ImportarCardapio({ aoConcluir }) {
     setPrevia(null)
     setModo('CANCELAR_TUDO')
     setErro('')
+    setAviso('')
     if (arquivoInput.current) arquivoInput.current.value = ''
+  }
+
+  function cancelar() {
+    limparImportacao()
+    setSucesso('')
   }
 
   async function baixarModelo() {
@@ -122,7 +128,12 @@ function ImportarCardapio({ aoConcluir }) {
         <label className="botao botao--primario" htmlFor="arquivo-cardapio">Escolher arquivo</label>
         <input ref={arquivoInput} id="arquivo-cardapio" className="arquivo-cardapio" type="file" accept=".csv,.xlsx" onChange={prever} />
       </div>
-      {arquivo ? <p>{arquivo.name}</p> : null}
+      {arquivo ? (
+        <div className="formulario__acoes">
+          <p>{arquivo.name}</p>
+          <Botao texto="Cancelar importação" variante="secundario" onClick={cancelar} desabilitado={enviando} />
+        </div>
+      ) : null}
       {resumo ? (
         <>
           <p>
@@ -182,7 +193,10 @@ function ImportarCardapio({ aoConcluir }) {
               </tbody>
             </table>
           </div>
-          <Botao texto="Confirmar importação" onClick={confirmar} desabilitado={!podeConfirmar} />
+          <div className="formulario__acoes">
+            <Botao texto="Confirmar importação" onClick={confirmar} desabilitado={!podeConfirmar} />
+            <Botao texto="Cancelar importação" variante="secundario" onClick={cancelar} desabilitado={enviando} />
+          </div>
         </>
       ) : null}
     </section>

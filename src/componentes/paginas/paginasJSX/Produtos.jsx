@@ -135,9 +135,10 @@ function Produtos() {
   const paginaAtual = Math.min(pagina, totalPaginas - 1)
   const produtosPagina = produtos.slice(paginaAtual * tamanho, paginaAtual * tamanho + tamanho)
 
+  const categoriasOrdenadas = [...categorias].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }))
   const opcoesCategoria = [
     { valor: '', rotulo: 'Selecione' },
-    ...categorias.filter((categoria) => categoria.ativa).map((categoria) => ({
+    ...categoriasOrdenadas.filter((categoria) => categoria.ativa).map((categoria) => ({
       valor: String(categoria.id),
       rotulo: categoria.nome,
     })),
@@ -166,7 +167,7 @@ function Produtos() {
             </form>
             )}
             <ul>
-              {categorias.map((categoria) => (
+              {categoriasOrdenadas.map((categoria) => (
                 <li key={categoria.id}>
                   {categoria.nome} ({formatarBooleano(categoria.ativa)}){' '}
                   {bloqueado ? null : (

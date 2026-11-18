@@ -8,7 +8,7 @@ import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { emVisaoGestor, lerSessao, visaoBloqueada } from '../../../utils/sessao'
-import { formatarBooleano, rotuloPerfil, rotuloStatus } from '../../../utils/formatacao'
+import { formatarBooleano, rotuloPerfil, rotuloStatus, validarSenha, DICA_SENHA } from '../../../utils/formatacao'
 
 const perfis = [
   { valor: 'GESTOR', rotulo: 'Gestor' },
@@ -126,6 +126,13 @@ function Cadastros() {
       setErro('Escolha o restaurante.')
       return
     }
+    if (!editandoUsuario) {
+      const falhaSenha = validarSenha(senha)
+      if (falhaSenha) {
+        setErro(falhaSenha)
+        return
+      }
+    }
     const trocaPerfil = Boolean(editandoUsuario) && !gestor && perfil !== editandoUsuario.perfil
     if (trocaPerfil) {
       const confirma = window.confirm(
@@ -203,6 +210,11 @@ function Cadastros() {
   async function redefinirSenha(usuario) {
     const nova = window.prompt(`Nova senha de ${usuario.nome}`)
     if (!nova) return
+    const falhaSenha = validarSenha(nova)
+    if (falhaSenha) {
+      setErro(falhaSenha)
+      return
+    }
     setErro('')
     try {
       await apiJson(endpoints.senhaUsuario(usuario.id), {
@@ -328,7 +340,7 @@ function Cadastros() {
               <FormField id="nome-pessoa" rotulo="Nome" valor={nome} onChange={setNome} obrigatorio />
               <FormField id="email-pessoa" rotulo="E-mail" tipo="email" valor={email} onChange={setEmail} obrigatorio />
               {!editandoUsuario ? (
-                <FormField id="senha-pessoa" rotulo="Senha" tipo="password" valor={senha} onChange={setSenha} obrigatorio />
+                <FormField id="senha-pessoa" rotulo="Senha" tipo="password" valor={senha} onChange={setSenha} dica={DICA_SENHA} obrigatorio />
               ) : null}
               {!gestor && (!editandoUsuario || String(editandoUsuario.id) !== String(sessao.usuarioId)) ? (
                 <>

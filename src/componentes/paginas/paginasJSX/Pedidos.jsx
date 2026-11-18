@@ -11,8 +11,24 @@ import { endpoints } from '../../../services/endpoints'
 import { emVisaoGestor, lerSessao, visaoBloqueada } from '../../../utils/sessao'
 import { formatarDataHora, formatarMoeda, normalizarBusca, rotuloStatus } from '../../../utils/formatacao'
 
+function rotuloComanda(comanda) {
+  return `Comanda #${comanda.numero ?? comanda.id}`
+}
+
+function numeroComanda(pedido) {
+  if (pedido.comandaNumero != null) return `#${pedido.comandaNumero}`
+  if (pedido.comandaId) return `#${pedido.comandaId}`
+  return '—'
+}
+
 function conteudo(pedido) {
   return pedido.itens.map((item) => `${item.quantidade} × ${item.produtoNome}`).join(', ')
+}
+
+function rotuloUsuario(pedido) {
+  const nome = pedido.usuarioNome || 'Usuário removido'
+  if (!pedido.lancadoPor) return nome
+  return `${nome} (${pedido.lancadoPor})`
 }
 
 function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item', comValores = false }) {
@@ -21,6 +37,7 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item',
   const [quantidade, setQuantidade] = useState('1')
   const [busca, setBusca] = useState('')
   const [erroLocal, setErroLocal] = useState('')
+  const categoriasOrdenadas = [...categorias].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }))
   const daCategoria = categoriaId
     ? produtos.filter((produto) => String(produto.categoriaId) === categoriaId)
     : produtos
@@ -65,7 +82,7 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item',
         onChange={(valor) => { setCategoriaId(valor); setProdutoId('') }}
         opcoes={[
           { valor: '', rotulo: 'Todas' },
-          ...categorias.map((categoria) => ({ valor: String(categoria.id), rotulo: categoria.nome })),
+          ...categoriasOrdenadas.map((categoria) => ({ valor: String(categoria.id), rotulo: categoria.nome })),
         ]}
       />
       {comValores ? (
@@ -177,7 +194,9 @@ function PedidosUsuario() {
     try {
       const criada = await apiJson(endpoints.comandas, { method: 'POST', body: JSON.stringify({}) })
       setComandaId(String(criada.id))
-      setAviso(`Comanda #${criada.id} aberta.`)
+      setMesa('')
+      setNomeCliente('')
+      setAviso(`Comanda #${criada.numero ?? criada.id} aberta.`)
       await carregar()
     } catch (falha) {
       setErro(falha.message)
@@ -228,10 +247,15 @@ function PedidosUsuario() {
           <Select
             id="comanda"
             valor={comandaId}
-            onChange={setComandaId}
+            onChange={(valor) => {
+              setComandaId(valor)
+              const escolhida = comandas.find((comanda) => String(comanda.id) === valor)
+              setMesa(escolhida?.mesa != null ? String(escolhida.mesa) : '')
+              setNomeCliente(escolhida?.nomeCliente || '')
+            }}
             opcoes={[
               { valor: '', rotulo: 'Selecione' },
-              ...comandas.map((comanda) => ({ valor: String(comanda.id), rotulo: `Comanda #${comanda.id}` })),
+              ...comandas.map((comanda) => ({ valor: String(comanda.id), rotulo: rotuloComanda(comanda) })),
             ]}
           />
         </section>
@@ -246,7 +270,7 @@ function PedidosUsuario() {
           {daComanda.length === 0 ? <p>Nenhum pedido nesta comanda.</p> : null}
           {daComanda.map((pedido) => (
             <p key={pedido.id}>
-              {formatarDataHora(pedido.dataHora)} · mesa {pedido.mesa} · {pedido.nomeCliente} · {conteudo(pedido)} · {rotuloStatus(pedido.status)}
+              {formatarDataHora(pedido.dataHora)} · {numeroComanda(pedido)} · mesa {pedido.mesa} · {pedido.nomeCliente} · {conteudo(pedido)} · {rotuloStatus(pedido.status)}
             </p>
           ))}
         </section>
@@ -424,10 +448,15 @@ function PedidosGestor() {
             <Select
               id="comanda-usuario"
               valor={comandaId}
-              onChange={setComandaId}
+              onChange={(valor) => {
+                setComandaId(valor)
+                const escolhida = comandas.find((comanda) => String(comanda.id) === valor)
+                setMesa(escolhida?.mesa != null ? String(escolhida.mesa) : '')
+                setNomeCliente(escolhida?.nomeCliente || '')
+              }}
               opcoes={[
                 { valor: '', rotulo: 'Abrir comanda nova' },
-                ...comandas.map((comanda) => ({ valor: String(comanda.id), rotulo: `Comanda #${comanda.id}` })),
+                ...comandas.map((comanda) => ({ valor: String(comanda.id), rotulo: rotuloComanda(comanda) })),
               ]}
             />
             <FormField id="mesa" rotulo="Mesa" tipo="number" valor={mesa} onChange={setMesa} obrigatorio />
@@ -454,8 +483,8 @@ function PedidosGestor() {
               {pedidos.map((pedido) => (
                 <tr key={pedido.id}>
                   <td>{formatarDataHora(pedido.dataHora)}</td>
-                  <td>{pedido.usuarioNome || 'Usuário removido'}</td>
-                  <td>{pedido.comandaId ? `#${pedido.comandaId}` : '—'}</td>
+                  <td>{rotuloUsuario(pedido)}</td>
+                  <td>{numeroComanda(pedido)}</td>
                   <td>{pedido.mesa}</td>
                   <td>{pedido.nomeCliente}</td>
                   <td>{conteudo(pedido)}</td>
@@ -471,21 +500,25 @@ function PedidosGestor() {
                   </td>
                   <td>
                     {pedido.status === 'ATIVO' && !bloqueado ? (
-                      <div className="formulario">
-                        <FormField
-                          id={`estorno-${pedido.id}`}
-                          rotulo="Motivo do estorno"
-                          valor={motivos[`e-${pedido.id}`] || ''}
-                          onChange={(valor) => setMotivos((atual) => ({ ...atual, [`e-${pedido.id}`]: valor }))}
-                        />
-                        <Botao texto="Estornar" variante="perigo" onClick={() => estornar(pedido)} />
-                        <FormField
-                          id={`cancelar-${pedido.id}`}
-                          rotulo="Motivo do cancelamento"
-                          valor={motivos[`c-${pedido.id}`] || ''}
-                          onChange={(valor) => setMotivos((atual) => ({ ...atual, [`c-${pedido.id}`]: valor }))}
-                        />
-                        <Botao texto="Cancelar" variante="secundario" onClick={() => cancelar(pedido)} />
+                      <div className="pedido__acoes">
+                        <div className="pedido__acao">
+                          <FormField
+                            id={`estorno-${pedido.id}`}
+                            rotulo="Motivo do estorno"
+                            valor={motivos[`e-${pedido.id}`] || ''}
+                            onChange={(valor) => setMotivos((atual) => ({ ...atual, [`e-${pedido.id}`]: valor }))}
+                          />
+                          <Botao texto="Estornar" variante="perigo" onClick={() => estornar(pedido)} />
+                        </div>
+                        <div className="pedido__acao">
+                          <FormField
+                            id={`cancelar-${pedido.id}`}
+                            rotulo="Motivo do cancelamento"
+                            valor={motivos[`c-${pedido.id}`] || ''}
+                            onChange={(valor) => setMotivos((atual) => ({ ...atual, [`c-${pedido.id}`]: valor }))}
+                          />
+                          <Botao texto="Cancelar" variante="secundario" onClick={() => cancelar(pedido)} />
+                        </div>
                         <Botao texto="Editar" variante="fantasma" onClick={() => iniciarEdicao(pedido)} />
                       </div>
                     ) : null}

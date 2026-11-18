@@ -7,6 +7,7 @@ import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { gravarSessao, lerSessao } from '../../../utils/sessao'
+import { validarSenha, DICA_SENHA } from '../../../utils/formatacao'
 
 function textoEsquecimento(perfil) {
   if (perfil === 'GESTOR') return 'Se esqueceu a senha, só o admin pode alterá-la.'
@@ -40,6 +41,11 @@ function Perfil() {
       setErro('A confirmação não confere com a nova senha.')
       return
     }
+    const falhaSenha = validarSenha(senhaNova)
+    if (falhaSenha) {
+      setErro(falhaSenha)
+      return
+    }
     try {
       await apiJson(endpoints.senha, {
         method: 'POST',
@@ -67,7 +73,7 @@ function Perfil() {
         <form className="formulario pagina__painel" onSubmit={trocar}>
           <h2>Trocar senha</h2>
           <FormField id="senha-atual" rotulo="Senha atual" tipo="password" valor={senhaAtual} onChange={setSenhaAtual} obrigatorio />
-          <FormField id="senha-nova" rotulo="Nova senha" tipo="password" valor={senhaNova} onChange={setSenhaNova} obrigatorio />
+          <FormField id="senha-nova" rotulo="Nova senha" tipo="password" valor={senhaNova} onChange={setSenhaNova} dica={DICA_SENHA} obrigatorio />
           <FormField id="senha-confirma" rotulo="Confirmar nova senha" tipo="password" valor={confirmacao} onChange={setConfirmacao} obrigatorio />
           <Botao texto="Salvar senha" tipo="submit" />
         </form>

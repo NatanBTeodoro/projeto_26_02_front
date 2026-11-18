@@ -8,7 +8,7 @@ import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { lerSessao } from '../../../utils/sessao'
-import { formatarBooleano, rotuloPerfil } from '../../../utils/formatacao'
+import { formatarBooleano, rotuloPerfil, validarSenha, DICA_SENHA } from '../../../utils/formatacao'
 
 const perfis = [
   { valor: 'GESTOR', rotulo: 'Gestor' },
@@ -36,6 +36,11 @@ function Usuarios() {
   async function criar(evento) {
     evento.preventDefault()
     setErro('')
+    const falhaSenha = validarSenha(senha)
+    if (falhaSenha) {
+      setErro(falhaSenha)
+      return
+    }
     try {
       await apiJson(endpoints.usuarios, {
         method: 'POST',
@@ -86,7 +91,7 @@ function Usuarios() {
         {aviso ? <p>{aviso}</p> : null}
         <form className="formulario pagina__painel" onSubmit={criar}>
           <FormField id="email" rotulo="E-mail" tipo="email" valor={email} onChange={setEmail} obrigatorio />
-          <FormField id="senha" rotulo="Senha" tipo="password" valor={senha} onChange={setSenha} obrigatorio />
+          <FormField id="senha" rotulo="Senha" tipo="password" valor={senha} onChange={setSenha} dica={DICA_SENHA} obrigatorio />
           <label htmlFor="perfil">Perfil</label>
           <Select id="perfil" valor={perfil} onChange={setPerfil} opcoes={perfis} />
           <Botao texto="Cadastrar" tipo="submit" />
@@ -124,7 +129,13 @@ function Usuarios() {
                     variante="fantasma"
                     onClick={() => {
                       const nova = window.prompt('Nova senha')
-                      if (nova) atualizar(usuario, { senha: nova })
+                      if (!nova) return
+                      const falhaSenha = validarSenha(nova)
+                      if (falhaSenha) {
+                        setErro(falhaSenha)
+                        return
+                      }
+                      atualizar(usuario, { senha: nova })
                     }}
                   />
                 </td>

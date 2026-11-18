@@ -132,12 +132,17 @@ export function periodoMesAtual() {
   return { inicio: paraInputLocal(inicio), fim: paraInputLocal(fim) }
 }
 
+export const DICA_SENHA = 'Mínimo de 6 caracteres, com uma letra maiúscula, um número e um caractere especial.'
+
 export function validarSenha(senha) {
-  if (!senha || senha.length < 8 || senha.length > 72) {
-    return 'A senha precisa ter entre 8 e 72 caracteres.'
-  }
-  if (!/[A-Za-z]/.test(senha) || !/\d/.test(senha)) {
-    return 'A senha precisa de pelo menos uma letra e um número.'
+  const texto = senha || ''
+  const ok = texto.length >= 6
+    && texto.length <= 72
+    && /\p{Lu}/u.test(texto)
+    && /\p{Nd}/u.test(texto)
+    && /[^\p{L}\p{N}]/u.test(texto)
+  if (!ok) {
+    return 'A senha precisa ter de 6 a 72 caracteres, com uma letra maiúscula, um número e um caractere especial.'
   }
   return ''
 }

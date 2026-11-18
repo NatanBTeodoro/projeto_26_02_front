@@ -6,7 +6,7 @@ import Botao from '../../atomos/atomosJSX/Botao'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
-import { formatarBooleano, rotuloStatus } from '../../../utils/formatacao'
+import { formatarBooleano, rotuloStatus, validarSenha, DICA_SENHA } from '../../../utils/formatacao'
 import { lerSessao } from '../../../utils/sessao'
 
 function Admins() {
@@ -38,6 +38,11 @@ function Admins() {
   async function criar(evento) {
     evento.preventDefault()
     setErro('')
+    const falhaSenha = validarSenha(senha)
+    if (falhaSenha) {
+      setErro(falhaSenha)
+      return
+    }
     try {
       await apiJson(endpoints.admins, {
         method: 'POST',
@@ -71,6 +76,11 @@ function Admins() {
   async function criarTi(evento) {
     evento.preventDefault()
     setErro('')
+    const falhaSenha = validarSenha(senhaTi)
+    if (falhaSenha) {
+      setErro(falhaSenha)
+      return
+    }
     try {
       await apiJson(endpoints.usuariosTi, {
         method: 'POST',
@@ -128,7 +138,7 @@ function Admins() {
           <form className="formulario" onSubmit={criarTi}>
             <FormField id="nome-ti" rotulo="Nome" valor={nomeTi} onChange={setNomeTi} obrigatorio />
             <FormField id="email-ti" rotulo="E-mail" tipo="email" valor={emailTi} onChange={setEmailTi} obrigatorio />
-            <FormField id="senha-ti" rotulo="Senha" tipo="password" valor={senhaTi} onChange={setSenhaTi} obrigatorio />
+            <FormField id="senha-ti" rotulo="Senha" tipo="password" valor={senhaTi} onChange={setSenhaTi} dica={DICA_SENHA} obrigatorio />
             <Botao texto="Cadastrar usuário TI" tipo="submit" />
           </form>
           <div className="tabela-rolagem">
@@ -164,7 +174,7 @@ function Admins() {
           <form className="formulario" onSubmit={criar}>
             <FormField id="nome" rotulo="Nome" valor={nome} onChange={setNome} obrigatorio />
             <FormField id="email" rotulo="E-mail" tipo="email" valor={email} onChange={setEmail} obrigatorio />
-            <FormField id="senha" rotulo="Senha" tipo="password" valor={senha} onChange={setSenha} obrigatorio />
+            <FormField id="senha" rotulo="Senha" tipo="password" valor={senha} onChange={setSenha} dica={DICA_SENHA} obrigatorio />
             <Botao texto="Cadastrar administrador" tipo="submit" />
           </form>
           <div className="tabela-rolagem">

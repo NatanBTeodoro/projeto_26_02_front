@@ -325,6 +325,8 @@ function DashboardGestor() {
 function DashboardUsuario() {
   const [pedidos, setPedidos] = useState([])
   const [erro, setErro] = useState('')
+  const [pagina, setPagina] = useState(0)
+  const tamanho = 10
 
   useEffect(() => {
     apiJson(endpoints.pedidos)
@@ -332,40 +334,104 @@ function DashboardUsuario() {
       .catch((falha) => setErro(falha.message))
   }, [])
 
+  const porHorario = [...pedidos].sort((a, b) => String(b.dataHora).localeCompare(String(a.dataHora)))
+  const grupos = Object.values(pedidos.reduce((mapa, pedido) => {
+    const chave = pedido.comandaId ?? `sem-${pedido.id}`
+    if (!mapa[chave]) {
+      mapa[chave] = {
+        chave,
+        numero: pedido.comandaNumero ?? pedido.comandaId,
+        pedidos: [],
+      }
+    }
+    mapa[chave].pedidos.push(pedido)
+    return mapa
+  }, {})).map((grupo) => ({
+    ...grupo,
+    pedidos: [...grupo.pedidos].sort((a, b) => String(b.dataHora).localeCompare(String(a.dataHora))),
+  })).sort((a, b) => Number(a.numero ?? 0) - Number(b.numero ?? 0))
+  const totalPaginas = Math.max(1, Math.ceil(grupos.length / tamanho))
+  const paginaAtual = Math.min(pagina, totalPaginas - 1)
+  const gruposPagina = grupos.slice(paginaAtual * tamanho, paginaAtual * tamanho + tamanho)
+
+  function linha(pedido) {
+    return (
+      <tr key={pedido.id}>
+        <td>{formatarDataHora(pedido.dataHora)}</td>
+        <td>{pedido.comandaNumero != null ? `#${pedido.comandaNumero}` : pedido.comandaId ? `#${pedido.comandaId}` : '—'}</td>
+        <td>{pedido.mesa}</td>
+        <td>{pedido.nomeCliente}</td>
+        <td>
+          {pedido.itens.map((item) => (
+            <div key={item.id}>{item.quantidade} × {item.produtoNome}</div>
+          ))}
+        </td>
+        <td>{rotuloStatus(pedido.status)}</td>
+      </tr>
+    )
+  }
+
   return (
     <TemplateAutenticado rotaAtual="/dashboard">
       <div className="pagina">
-        <CabecalhoPagina titulo="Dashboard" descricao="Pedidos cadastrados por você." />
+        <CabecalhoPagina titulo="Dashboard" descricao="Pedidos cadastrados por você, por horário e por comanda." />
         <MensagemErro texto={erro} />
-        <table className="tabela">
-          <thead>
-            <tr>
-              <th>Quando</th>
-              <th>Comanda</th>
-              <th>Mesa</th>
-              <th>Cliente</th>
-              <th>Conteúdo</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pedidos.map((pedido) => (
-              <tr key={pedido.id}>
-                <td>{formatarDataHora(pedido.dataHora)}</td>
-                <td>{pedido.comandaId ? `#${pedido.comandaId}` : '—'}</td>
-                <td>{pedido.mesa}</td>
-                <td>{pedido.nomeCliente}</td>
-                <td>
-                  {pedido.itens.map((item) => (
-                    <div key={item.id}>{item.quantidade} × {item.produtoNome}</div>
-                  ))}
-                </td>
-                <td>{rotuloStatus(pedido.status)}</td>
-              </tr>
+        <section className="pagina__painel">
+          <h2>Por horário</h2>
+          <p>{porHorario.length} pedido(s)</p>
+          {porHorario.length === 0 ? <p>Nenhum pedido cadastrado.</p> : (
+            <div className="tabela-rolagem">
+              <table className="tabela">
+                <thead>
+                  <tr>
+                    <th>Quando</th>
+                    <th>Comanda</th>
+                    <th>Mesa</th>
+                    <th>Cliente</th>
+                    <th>Conteúdo</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>{porHorario.map(linha)}</tbody>
+              </table>
+            </div>
+          )}
+        </section>
+        <section className="pagina__painel">
+          <h2>Por comanda</h2>
+          <p>{grupos.length} comanda(s)</p>
+          {gruposPagina.map((grupo) => (
+            <article key={grupo.chave}>
+              <h3>Comanda {grupo.numero != null ? `#${grupo.numero}` : 'sem número'} · {grupo.pedidos.length} pedido(s)</h3>
+              <div className="tabela-rolagem">
+                <table className="tabela">
+                  <thead>
+                    <tr>
+                      <th>Quando</th>
+                      <th>Comanda</th>
+                      <th>Mesa</th>
+                      <th>Cliente</th>
+                      <th>Conteúdo</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>{grupo.pedidos.map(linha)}</tbody>
+                </table>
+              </div>
+            </article>
+          ))}
+          <div className="paginas-numeradas">
+            {Array.from({ length: totalPaginas }, (_, indice) => (
+              <Botao
+                key={indice}
+                texto={String(indice + 1)}
+                variante={indice === paginaAtual ? 'primario' : 'fantasma'}
+                onClick={() => setPagina(indice)}
+              />
             ))}
-          </tbody>
-        </table>
-        {pedidos.length === 0 ? <p>Nenhum pedido cadastrado.</p> : null}
+          </div>
+          <p>Página {paginaAtual + 1} de {totalPaginas} · até 10 comandas por página</p>
+        </section>
       </div>
     </TemplateAutenticado>
   )
