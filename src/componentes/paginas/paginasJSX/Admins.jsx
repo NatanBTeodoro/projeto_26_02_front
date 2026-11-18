@@ -7,17 +7,28 @@ import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { formatarBooleano, rotuloStatus } from '../../../utils/formatacao'
+import { lerSessao } from '../../../utils/sessao'
 
 function Admins() {
+  const sessao = lerSessao()
   const [admins, setAdmins] = useState([])
+  const [equipe, setEquipe] = useState([])
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
+  const [nomeTi, setNomeTi] = useState('')
+  const [emailTi, setEmailTi] = useState('')
+  const [senhaTi, setSenhaTi] = useState('')
   const [erro, setErro] = useState('')
   const [aviso, setAviso] = useState('')
 
   async function carregar() {
-    setAdmins(await apiJson(endpoints.admins))
+    const [listaAdmins, listaEquipe] = await Promise.all([
+      apiJson(endpoints.admins),
+      apiJson(endpoints.usuariosTi),
+    ])
+    setAdmins(listaAdmins)
+    setEquipe(listaEquipe)
   }
 
   useEffect(() => {
@@ -35,7 +46,7 @@ function Admins() {
       setNome('')
       setEmail('')
       setSenha('')
-      setAviso('Admin cadastrado.')
+      setAviso('Administrador cadastrado.')
       await carregar()
     } catch (falha) {
       setErro(falha.message)
@@ -49,8 +60,39 @@ function Admins() {
         method: 'POST',
       })
       setAviso(admin.ativo
-        ? 'Admin inativado. Gestores, usuários e restaurantes vinculados também foram inativados.'
-        : 'Admin reativado. Quem tinha sido inativado junto com ele voltou.')
+        ? 'Administrador inativado. Gestores, usuários e restaurantes vinculados também foram inativados.'
+        : 'Administrador reativado. Quem tinha sido inativado junto com ele voltou.')
+      await carregar()
+    } catch (falha) {
+      setErro(falha.message)
+    }
+  }
+
+  async function criarTi(evento) {
+    evento.preventDefault()
+    setErro('')
+    try {
+      await apiJson(endpoints.usuariosTi, {
+        method: 'POST',
+        body: JSON.stringify({ nome: nomeTi, email: emailTi, senha: senhaTi }),
+      })
+      setNomeTi('')
+      setEmailTi('')
+      setSenhaTi('')
+      setAviso('Usuário de TI cadastrado.')
+      await carregar()
+    } catch (falha) {
+      setErro(falha.message)
+    }
+  }
+
+  async function removerTi(usuario) {
+    const confirma = window.confirm(`Remover ${usuario.nome} da equipe de TI?`)
+    if (!confirma) return
+    setErro('')
+    try {
+      await apiJson(endpoints.usuarioTi(usuario.id), { method: 'DELETE' })
+      setAviso('Usuário de TI removido.')
       await carregar()
     } catch (falha) {
       setErro(falha.message)
@@ -65,7 +107,7 @@ function Admins() {
     setErro('')
     try {
       await apiJson(endpoints.admin(admin.id), { method: 'DELETE' })
-      setAviso('Admin e os dados vinculados foram deletados.')
+      setAviso('Administrador e os dados vinculados foram deletados.')
       await carregar()
     } catch (falha) {
       setErro(falha.message)
@@ -76,18 +118,57 @@ function Admins() {
     <TemplateAutenticado rotaAtual="/admins">
       <div className="pagina">
         <CabecalhoPagina
-          titulo="Admins"
-          descricao="Cadastro, inativação e exclusão das contas de admin, com os restaurantes de cada uma."
+          titulo="TI"
+          descricao="Cadastro da equipe de TI e das contas de administrador, com os restaurantes de cada uma."
         />
         <MensagemErro texto={erro} />
         {aviso ? <p>{aviso}</p> : null}
-        <form className="formulario pagina__painel" onSubmit={criar}>
-          <FormField id="nome" rotulo="Nome" valor={nome} onChange={setNome} obrigatorio />
-          <FormField id="email" rotulo="E-mail" tipo="email" valor={email} onChange={setEmail} obrigatorio />
-          <FormField id="senha" rotulo="Senha" tipo="password" valor={senha} onChange={setSenha} obrigatorio />
-          <Botao texto="Cadastrar admin" tipo="submit" />
-        </form>
-        <table className="tabela">
+        <section className="pagina__painel">
+          <h2>Usuários TI</h2>
+          <form className="formulario" onSubmit={criarTi}>
+            <FormField id="nome-ti" rotulo="Nome" valor={nomeTi} onChange={setNomeTi} obrigatorio />
+            <FormField id="email-ti" rotulo="E-mail" tipo="email" valor={emailTi} onChange={setEmailTi} obrigatorio />
+            <FormField id="senha-ti" rotulo="Senha" tipo="password" valor={senhaTi} onChange={setSenhaTi} obrigatorio />
+            <Botao texto="Cadastrar usuário TI" tipo="submit" />
+          </form>
+          <div className="tabela-rolagem">
+            <table className="tabela">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>E-mail</th>
+                  <th>Ativo</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {equipe.map((usuario) => (
+                  <tr key={usuario.id}>
+                    <td>{usuario.nome}</td>
+                    <td>{usuario.email}</td>
+                    <td>{formatarBooleano(usuario.ativo)}</td>
+                    <td>
+                      {usuario.principal ? <span>Conta principal</span> : null}
+                      {!usuario.principal && String(usuario.id) !== String(sessao.usuarioId) ? (
+                        <Botao texto="Remover" variante="perigo" onClick={() => removerTi(usuario)} />
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <section className="pagina__painel">
+          <h2>Contas de administrador</h2>
+          <form className="formulario" onSubmit={criar}>
+            <FormField id="nome" rotulo="Nome" valor={nome} onChange={setNome} obrigatorio />
+            <FormField id="email" rotulo="E-mail" tipo="email" valor={email} onChange={setEmail} obrigatorio />
+            <FormField id="senha" rotulo="Senha" tipo="password" valor={senha} onChange={setSenha} obrigatorio />
+            <Botao texto="Cadastrar administrador" tipo="submit" />
+          </form>
+          <div className="tabela-rolagem">
+          <table className="tabela">
           <thead>
             <tr>
               <th>Nome</th>
@@ -124,6 +205,8 @@ function Admins() {
             ))}
           </tbody>
         </table>
+          </div>
+        </section>
       </div>
     </TemplateAutenticado>
   )

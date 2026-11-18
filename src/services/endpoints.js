@@ -7,6 +7,8 @@ export const endpoints = {
   usuarios: '/api/usuarios',
   usuario: (id) => `/api/usuarios/${id}`,
   senhaUsuario: (id) => `/api/usuarios/${id}/senha`,
+  usuariosTi: '/api/ti/usuarios',
+  usuarioTi: (id) => `/api/ti/usuarios/${id}`,
   admins: '/api/ti/admins',
   admin: (id) => `/api/ti/admins/${id}`,
   inativarAdmin: (id) => `/api/ti/admins/${id}/inativar`,
@@ -34,4 +36,7 @@ export const endpoints = {
   analise: '/api/analise',
   analiseCsv: '/api/analise/exportar',
   dashboard: '/api/dashboard',
+  reclamacoes: '/api/reclamacoes',
+  reclamacao: (id) => `/api/reclamacoes/${id}`,
+  anexoReclamacao: (id) => `/api/reclamacoes/${id}/anexo`,
 }

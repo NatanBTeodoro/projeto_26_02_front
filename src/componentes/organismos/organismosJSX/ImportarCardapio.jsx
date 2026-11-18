@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import Botao from '../../atomos/atomosJSX/Botao'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
+import MensagemSucesso from '../../atomos/atomosJSX/MensagemSucesso'
 import { apiArquivo, apiFormulario } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { formatarMoeda } from '../../../utils/formatacao'
@@ -18,13 +19,28 @@ function diferenca(anterior, novo) {
   return `${formatarMoeda(anterior)} → ${formatarMoeda(novo)}`
 }
 
+function mensagemImportados(quantidade) {
+  if (quantidade === 1) return '1 produto importado com sucesso'
+  return `${quantidade} produtos importados com sucesso`
+}
+
 function ImportarCardapio({ aoConcluir }) {
+  const arquivoInput = useRef(null)
   const [arquivo, setArquivo] = useState(null)
   const [previa, setPrevia] = useState(null)
   const [modo, setModo] = useState('CANCELAR_TUDO')
   const [erro, setErro] = useState('')
   const [aviso, setAviso] = useState('')
+  const [sucesso, setSucesso] = useState('')
   const [enviando, setEnviando] = useState(false)
+
+  function limparImportacao() {
+    setArquivo(null)
+    setPrevia(null)
+    setModo('CANCELAR_TUDO')
+    setErro('')
+    if (arquivoInput.current) arquivoInput.current.value = ''
+  }
 
   async function baixarModelo() {
     setErro('')
@@ -46,6 +62,7 @@ function ImportarCardapio({ aoConcluir }) {
     setArquivo(escolhido || null)
     setPrevia(null)
     setAviso('')
+    setSucesso('')
     setErro('')
     if (!escolhido) return
     setEnviando(true)
@@ -64,19 +81,18 @@ function ImportarCardapio({ aoConcluir }) {
     if (!arquivo) return
     setErro('')
     setAviso('')
+    setSucesso('')
     setEnviando(true)
     try {
       const dados = new FormData()
       dados.append('arquivo', arquivo)
       dados.append('modo', modo)
       const resultado = await apiFormulario(endpoints.confirmarCardapio, dados)
-      setPrevia(resultado)
       if (resultado.aplicado) {
-        setAviso(resultado.gravados
-          ? `${resultado.gravados} produto(s) gravados.`
-          : 'Nenhum produto válido para gravar.')
-        setArquivo(null)
-        if (resultado.gravados && aoConcluir) await aoConcluir()
+        const quantidade = resultado.gravados || 0
+        limparImportacao()
+        setSucesso(mensagemImportados(quantidade))
+        if (quantidade && aoConcluir) await aoConcluir()
       } else {
         setAviso('Nada foi gravado. Há erros e a opção escolhida é cancelar tudo.')
       }
@@ -99,11 +115,12 @@ function ImportarCardapio({ aoConcluir }) {
       <h2>Importar cardápio</h2>
       <p>Colunas fixas: categoria, nome, preco e custo. A segunda linha do modelo é um exemplo.</p>
       <MensagemErro texto={erro} />
+      <MensagemSucesso texto={sucesso} />
       {aviso ? <p>{aviso}</p> : null}
       <div className="formulario__acoes">
         <Botao texto="Baixar modelo" variante="secundario" onClick={baixarModelo} />
         <label className="botao botao--primario" htmlFor="arquivo-cardapio">Escolher arquivo</label>
-        <input id="arquivo-cardapio" className="arquivo-cardapio" type="file" accept=".csv,.xlsx" onChange={prever} />
+        <input ref={arquivoInput} id="arquivo-cardapio" className="arquivo-cardapio" type="file" accept=".csv,.xlsx" onChange={prever} />
       </div>
       {arquivo ? <p>{arquivo.name}</p> : null}
       {resumo ? (

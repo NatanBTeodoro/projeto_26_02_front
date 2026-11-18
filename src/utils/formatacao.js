@@ -35,6 +35,9 @@ const ROTULOS_STATUS = {
   FECHADO: 'Fechado',
   ESTORNADO: 'Estornado',
   CANCELADO: 'Cancelado',
+  ABERTA: 'Aberta',
+  EM_ANDAMENTO: 'Em andamento',
+  RESOLVIDA: 'Resolvida',
   PENDENTE: 'Pendente',
   EM_EXECUCAO: 'Em execução',
   CONCLUIDA: 'Concluída',
@@ -48,6 +51,13 @@ const ROTULOS_STATUS = {
   MES: 'Mês',
   TRIMESTRE: 'Trimestre',
   ANO: 'Ano',
+}
+
+export function normalizarBusca(texto) {
+  return String(texto || '')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLocaleLowerCase('pt-BR')
 }
 
 export function formatarPercentual(valor) {
@@ -94,6 +104,12 @@ export function rotuloPerfil(perfil) {
 
 export function rotuloStatus(status) {
   return ROTULOS_STATUS[status] || status || '—'
+}
+
+export function textoResposta(item) {
+  const quem = item?.destino === 'ADMINISTRADOR' ? 'administrador' : 'TI'
+  if (item?.resposta) return `Resposta do ${quem}: ${item.resposta}`
+  return `Sem resposta do ${quem}.`
 }
 
 export function paraInstantLocal(valorDatetimeLocal) {

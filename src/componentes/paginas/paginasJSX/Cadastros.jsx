@@ -126,11 +126,20 @@ function Cadastros() {
       setErro('Escolha o restaurante.')
       return
     }
+    const trocaPerfil = Boolean(editandoUsuario) && !gestor && perfil !== editandoUsuario.perfil
+    if (trocaPerfil) {
+      const confirma = window.confirm(
+        `Alterar o perfil de ${nome.trim()} para ${rotuloPerfil(perfil)}? Depois disso, essa pessoa vê só as telas do novo perfil.`,
+      )
+      if (!confirma) return
+    }
     try {
       if (editandoUsuario) {
+        const corpo = { nome: nome.trim(), email: email.trim() }
+        if (trocaPerfil) corpo.perfil = perfil
         await apiJson(endpoints.usuario(editandoUsuario.id), {
           method: 'PUT',
-          body: JSON.stringify({ nome: nome.trim(), email: email.trim() }),
+          body: JSON.stringify(corpo),
         })
       } else {
         await apiJson(endpoints.usuarios, {
@@ -321,7 +330,7 @@ function Cadastros() {
               {!editandoUsuario ? (
                 <FormField id="senha-pessoa" rotulo="Senha" tipo="password" valor={senha} onChange={setSenha} obrigatorio />
               ) : null}
-              {!gestor && !editandoUsuario ? (
+              {!gestor && (!editandoUsuario || String(editandoUsuario.id) !== String(sessao.usuarioId)) ? (
                 <>
                   <label htmlFor="perfil">Perfil</label>
                   <Select id="perfil" valor={perfil} onChange={setPerfil} opcoes={perfis} />

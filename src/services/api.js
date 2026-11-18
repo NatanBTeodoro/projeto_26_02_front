@@ -93,6 +93,33 @@ export async function apiFormulario(caminho, formData) {
   return corpo
 }
 
+export async function apiBlob(caminho) {
+  const response = await apiFetch(caminho)
+  if (!response.ok) {
+    const texto = await response.text()
+    let corpo = null
+    if (texto) {
+      try {
+        corpo = JSON.parse(texto)
+      } catch {
+        corpo = { mensagem: texto }
+      }
+    }
+    if (response.status === 401) {
+      limparSessao()
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login'
+      }
+    }
+    const erro = new Error(mensagemDoCorpo(corpo, response.status))
+    erro.status = response.status
+    throw erro
+  }
+  const disposicao = response.headers.get('Content-Disposition') || ''
+  const encontrado = disposicao.match(/filename="?([^";]+)"?/)
+  return { blob: await response.blob(), nome: encontrado?.[1] || 'anexo' }
+}
+
 export async function apiArquivo(caminho) {
   const response = await apiFetch(caminho, {
     headers: { Accept: 'text/csv, application/json' },

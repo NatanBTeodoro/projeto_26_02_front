@@ -10,6 +10,9 @@ import Cadastros from './componentes/paginas/paginasJSX/Cadastros'
 import Restaurantes from './componentes/paginas/paginasJSX/Restaurantes'
 import Admins from './componentes/paginas/paginasJSX/Admins'
 import Perfil from './componentes/paginas/paginasJSX/Perfil'
+import Suporte from './componentes/paginas/paginasJSX/Suporte'
+import Reclamacoes from './componentes/paginas/paginasJSX/Reclamacoes'
+import Cardapio from './componentes/paginas/paginasJSX/Cardapio'
 
 function proteger(pagina, perfis) {
   return <RotaPerfil perfis={perfis}>{pagina}</RotaPerfil>
@@ -34,6 +37,9 @@ function App() {
         <Route path="/pedidos" element={proteger(<Pedidos />, ['ADMINISTRADOR', 'GESTOR', 'USUARIO'])} />
         <Route path="/perfil" element={proteger(<Perfil />, ['TI', 'ADMINISTRADOR', 'GESTOR', 'USUARIO'])} />
         <Route path="/admins" element={proteger(<Admins />, ['TI'])} />
+        <Route path="/reclamacoes" element={proteger(<Reclamacoes />, ['TI'])} />
+        <Route path="/suporte" element={proteger(<Suporte />, ['ADMINISTRADOR', 'GESTOR'])} />
+        <Route path="/cardapio" element={proteger(<Cardapio />, ['USUARIO'])} />
         <Route path="/usuarios" element={<Navigate to="/cadastros" replace />} />
         <Route path="*" element={<Inicio />} />
       </Routes>

@@ -9,23 +9,29 @@ import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { emVisaoGestor, lerSessao, visaoBloqueada } from '../../../utils/sessao'
-import { formatarDataHora, formatarMoeda, rotuloStatus } from '../../../utils/formatacao'
+import { formatarDataHora, formatarMoeda, normalizarBusca, rotuloStatus } from '../../../utils/formatacao'
 
 function conteudo(pedido) {
   return pedido.itens.map((item) => `${item.quantidade} × ${item.produtoNome}`).join(', ')
 }
 
-function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item' }) {
+function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item', comValores = false }) {
   const [categoriaId, setCategoriaId] = useState('')
   const [produtoId, setProdutoId] = useState('')
   const [quantidade, setQuantidade] = useState('1')
+  const [busca, setBusca] = useState('')
   const [erroLocal, setErroLocal] = useState('')
-  const produtosVisiveis = categoriaId
+  const daCategoria = categoriaId
     ? produtos.filter((produto) => String(produto.categoriaId) === categoriaId)
     : produtos
+  const termo = normalizarBusca(busca.trim())
+  const produtosVisiveis = comValores && termo
+    ? daCategoria.filter((produto) => normalizarBusca(produto.nome).includes(termo))
+    : daCategoria
+  const total = itens.reduce((soma, item) => soma + Number(item.preco || 0) * Number(item.quantidade || 0), 0)
 
   function incluir() {
-    const produto = produtosVisiveis.find((item) => String(item.id) === produtoId)
+    const produto = produtos.find((item) => String(item.id) === produtoId)
     const qtd = Number(quantidade)
     if (!produto || qtd < 1) {
       setErroLocal('Escolha um produto e uma quantidade maior que zero.')
@@ -35,10 +41,18 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item' 
     setItens((atual) => {
       const indice = atual.findIndex((item) => item.produtoId === produto.id)
       if (indice >= 0) {
-        return atual.map((item, i) => (i === indice ? { ...item, quantidade: item.quantidade + qtd } : item))
+        return atual.map((item, i) => (i === indice
+          ? { ...item, quantidade: item.quantidade + qtd, preco: produto.precoAtual }
+          : item))
       }
-      return [...atual, { produtoId: produto.id, nome: produto.nome, quantidade: qtd }]
+      return [...atual, { produtoId: produto.id, nome: produto.nome, quantidade: qtd, preco: produto.precoAtual }]
     })
+  }
+
+  function alterarQuantidade(id, valor) {
+    const qtd = Number(valor)
+    if (!Number.isInteger(qtd) || qtd < 1) return
+    setItens((atual) => atual.map((item) => (item.produtoId === id ? { ...item, quantidade: qtd } : item)))
   }
 
   return (
@@ -54,18 +68,42 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item' 
           ...categorias.map((categoria) => ({ valor: String(categoria.id), rotulo: categoria.nome })),
         ]}
       />
+      {comValores ? (
+        <FormField
+          id={`${prefixo}-busca`}
+          rotulo="Buscar produto"
+          valor={busca}
+          onChange={setBusca}
+          placeholder="Nome do produto"
+        />
+      ) : null}
       <div className="formulario__linha">
         <div>
           <label htmlFor={`${prefixo}-produto`}>Produto</label>
-          <Select
-            id={`${prefixo}-produto`}
-            valor={produtoId}
-            onChange={setProdutoId}
-            opcoes={[
-              { valor: '', rotulo: 'Selecione' },
-              ...produtosVisiveis.map((produto) => ({ valor: String(produto.id), rotulo: produto.nome })),
-            ]}
-          />
+          {comValores ? (
+            termo && produtosVisiveis.length === 0 ? (
+              <p>Nenhum produto encontrado</p>
+            ) : (
+              <ul className="lista-produtos" id={`${prefixo}-produto`}>
+                {produtosVisiveis.map((produto) => (
+                  <li key={produto.id} aria-selected={String(produto.id) === produtoId}>
+                    <button type="button" onClick={() => setProdutoId(String(produto.id))}>{produto.nome}</button>
+                    <span>{formatarMoeda(produto.precoAtual)}</span>
+                  </li>
+                ))}
+              </ul>
+            )
+          ) : (
+            <Select
+              id={`${prefixo}-produto`}
+              valor={produtoId}
+              onChange={setProdutoId}
+              opcoes={[
+                { valor: '', rotulo: 'Selecione' },
+                ...produtosVisiveis.map((produto) => ({ valor: String(produto.id), rotulo: produto.nome })),
+              ]}
+            />
+          )}
         </div>
         <FormField id={`${prefixo}-quantidade`} rotulo="Quantidade" tipo="number" valor={quantidade} onChange={setQuantidade} />
       </div>
@@ -73,7 +111,24 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item' 
       <ul className="rascunho">
         {itens.map((item) => (
           <li key={item.produtoId}>
-            <span>{item.quantidade} × {item.nome}</span>
+            {comValores ? (
+              <>
+                <span>{item.nome}</span>
+                <span>{formatarMoeda(item.preco)}</span>
+                <input
+                  className="input input--quantidade"
+                  type="number"
+                  min="1"
+                  step="1"
+                  aria-label={`Quantidade de ${item.nome}`}
+                  value={item.quantidade}
+                  onChange={(evento) => alterarQuantidade(item.produtoId, evento.target.value)}
+                />
+                <span>{formatarMoeda(Number(item.preco || 0) * Number(item.quantidade || 0))}</span>
+              </>
+            ) : (
+              <span>{item.quantidade} × {item.nome}</span>
+            )}
             <Botao
               texto="Remover"
               variante="fantasma"
@@ -82,6 +137,7 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item' 
           </li>
         ))}
       </ul>
+      {comValores ? <p className="pedido__total">Total {formatarMoeda(total)}</p> : null}
     </div>
   )
 }
@@ -182,7 +238,7 @@ function PedidosUsuario() {
         <form className="formulario pagina__painel" onSubmit={salvar}>
           <FormField id="mesa" rotulo="Mesa" tipo="number" valor={mesa} onChange={setMesa} obrigatorio />
           <FormField id="cliente" rotulo="Nome do cliente" valor={nomeCliente} onChange={setNomeCliente} obrigatorio />
-          <SeletorItens categorias={categorias} produtos={produtos} itens={itens} setItens={setItens} />
+          <SeletorItens categorias={categorias} produtos={produtos} itens={itens} setItens={setItens} comValores />
           <Botao texto="Lançar pedido na comanda" tipo="submit" desabilitado={itens.length === 0} />
         </form>
         <section className="pagina__painel">

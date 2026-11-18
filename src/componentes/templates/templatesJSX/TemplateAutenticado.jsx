@@ -33,15 +33,21 @@ function sairDaVisao() {
   window.location.href = '/restaurantes'
 }
 
-function TemplateAutenticado({ rotaAtual, children }) {
+function TemplateAutenticado({ rotaAtual, children, foco = null }) {
   const sessao = lerSessao()
   const visao = lerVisao()
 
   return (
-    <div className="template-autenticado">
-      <Navbar perfil={sessao.perfil} rotaAtual={rotaAtual} onSair={sair} />
+    <div className={foco ? 'template-autenticado template-autenticado--foco' : 'template-autenticado'}>
+      {foco ? null : <Navbar perfil={sessao.perfil} rotaAtual={rotaAtual} onSair={sair} />}
       <div className="template-autenticado__corpo">
-        {emVisaoGestor() ? (
+        {foco ? (
+          <div className="visao-gestor">
+            <span>{foco.titulo}</span>
+            <Botao texto="Voltar" variante="secundario" onClick={foco.onVoltar} />
+          </div>
+        ) : null}
+        {!foco && emVisaoGestor() ? (
           <div className="visao-gestor">
             <span>
               Visão de gestor: {visao.restauranteNome}

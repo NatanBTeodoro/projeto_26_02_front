@@ -35,4 +35,8 @@
   .template-autenticado__main {
     padding-top: 3.4rem;
   }
+
+  .template-autenticado--foco .template-autenticado__main {
+    padding-top: 1.4rem;
+  }
 }

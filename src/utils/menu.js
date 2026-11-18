@@ -3,7 +3,8 @@ const MENUS = {
     {
       titulo: 'TI',
       itens: [
-        { href: '/admins', rotulo: 'Admins' },
+        { href: '/admins', rotulo: 'TI' },
+        { href: '/reclamacoes', rotulo: 'Relatórios / Reclamações' },
         { href: '/perfil', rotulo: 'Perfil' },
       ],
     },
@@ -16,6 +17,7 @@ const MENUS = {
         { href: '/matriz', rotulo: 'Matriz' },
         { href: '/restaurantes', rotulo: 'Restaurantes' },
         { href: '/cadastros', rotulo: 'Cadastros' },
+        { href: '/suporte', rotulo: 'Suporte / Reclamações' },
         { href: '/perfil', rotulo: 'Perfil' },
       ],
     },
@@ -28,6 +30,7 @@ const MENUS = {
         { href: '/produtos', rotulo: 'Produtos' },
         { href: '/pedidos', rotulo: 'Pedidos' },
         { href: '/cadastros', rotulo: 'Cadastros' },
+        { href: '/suporte', rotulo: 'Suporte / Reclamações' },
         { href: '/perfil', rotulo: 'Perfil' },
       ],
     },
@@ -38,6 +41,7 @@ const MENUS = {
       itens: [
         { href: '/dashboard', rotulo: 'Dashboard' },
         { href: '/pedidos', rotulo: 'Pedidos' },
+        { href: '/cardapio', rotulo: 'Cardápio' },
         { href: '/perfil', rotulo: 'Perfil' },
       ],
     },
