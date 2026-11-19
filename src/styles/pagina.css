@@ -4,6 +4,14 @@
   gap: 1.25rem;
 }
 
+.perfil__tema {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 .pagina__grade {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

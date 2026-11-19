@@ -3,6 +3,7 @@ import TemplateAutenticado from '../../templates/templatesJSX/TemplateAutenticad
 import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import FormField from '../../moleculas/moleculasJSX/FormField'
 import Botao from '../../atomos/atomosJSX/Botao'
+import AlternarTema from '../../atomos/atomosJSX/AlternarTema'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
@@ -69,6 +70,10 @@ function Perfil() {
         <section className="pagina__painel">
           <p><strong>Nome</strong><br />{conta?.nome || '—'}</p>
           <p><strong>E-mail</strong><br />{conta?.email || sessao.usuarioEmail}</p>
+          <div className="perfil__tema">
+            <strong>Aparência</strong>
+            <AlternarTema />
+          </div>
         </section>
         <form className="formulario pagina__painel" onSubmit={trocar}>
           <h2>Trocar senha</h2>

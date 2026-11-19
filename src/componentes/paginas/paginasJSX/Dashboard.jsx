@@ -184,6 +184,7 @@ function DashboardGestor() {
   const [ate, setAte] = useState(iso(new Date()))
   const [painel, setPainel] = useState(null)
   const [matriz, setMatriz] = useState(null)
+  const [classeFiltro, setClasseFiltro] = useState('')
   const [erro, setErro] = useState('')
 
   async function consultar(evento) {
@@ -212,6 +213,10 @@ function DashboardGestor() {
     rotulo: rotuloClasse(classe),
     quantidade: Number(painel?.itensPorClasse?.[classe] ?? 0),
   }))
+  const itensMatriz = [...(matriz?.itens || [])]
+    .filter((item) => !classeFiltro || item.classe === classeFiltro)
+    .sort((a, b) => Number(b.popularidade) - Number(a.popularidade)
+      || String(a.nome).localeCompare(String(b.nome), 'pt-BR'))
 
   return (
     <TemplateAutenticado rotaAtual="/dashboard">
@@ -307,6 +312,19 @@ function DashboardGestor() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+            <div>
+              <label htmlFor="filtro-classe">Classe</label>
+              <Select
+                id="filtro-classe"
+                valor={classeFiltro}
+                onChange={setClasseFiltro}
+                opcoes={[
+                  { valor: '', rotulo: 'Todas' },
+                  ...CLASSES.map((classe) => ({ valor: classe, rotulo: rotuloClasse(classe) })),
+                ]}
+              />
+            </div>
+            {itensMatriz.length === 0 ? <p>{classeFiltro ? 'Nenhum produto nessa classe.' : 'Nenhum produto no período.'}</p> : (
             <div className="tabela-rolagem">
               <table className="tabela">
                 <thead>
@@ -322,7 +340,7 @@ function DashboardGestor() {
                   </tr>
                 </thead>
                 <tbody>
-                  {matriz.itens.map((item) => (
+                  {itensMatriz.map((item) => (
                     <tr key={item.produtoId}>
                       <td>{item.nome}</td>
                       <td>{item.categoria}</td>
@@ -339,6 +357,7 @@ function DashboardGestor() {
                 </tbody>
               </table>
             </div>
+            )}
           </section>
         ) : null}
       </div>

@@ -16,7 +16,6 @@ import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { emVisaoGestor, lerSessao, lerVisao, limparSessao, limparVisao } from '../../../utils/sessao'
 import Botao from '../../atomos/atomosJSX/Botao'
-import AlternarTema from '../../atomos/atomosJSX/AlternarTema'
 import '../templatesCSS/TemplateAutenticado.css'
 
 async function sair() {
@@ -40,7 +39,6 @@ function TemplateAutenticado({ rotaAtual, children, foco = null }) {
 
   return (
     <div className={foco ? 'template-autenticado template-autenticado--foco' : 'template-autenticado'}>
-      <AlternarTema />
       {foco ? null : <Navbar perfil={sessao.perfil} rotaAtual={rotaAtual} onSair={sair} />}
       <div className="template-autenticado__corpo">
         {foco ? (

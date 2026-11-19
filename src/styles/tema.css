@@ -48,25 +48,25 @@
 
 [data-tema="claro"] {
   color-scheme: light;
-  --cor-creme: #f3eee6;
-  --cor-creme-escuro: #e6dfd3;
-  --cor-tinta: #1c2430;
+  --cor-creme: #f1e8db;
+  --cor-creme-escuro: #e7dccb;
+  --cor-tinta: #2a211a;
   --cor-oliva: #243f34;
-  --cor-oliva-claro: #3d6a52;
-  --cor-terracota: #c45c26;
+  --cor-oliva-claro: #2f5a45;
+  --cor-terracota: #b8501f;
   --cor-terracota-escuro: #8f3e16;
-  --cor-dourado: #a67c2d;
+  --cor-dourado: #9a7424;
   --cor-ardosia: #35556e;
   --cor-branco: #fffdf9;
-  --cor-linha: #ddd4c6;
+  --cor-linha: #d6c8b4;
 
   --cor-marca: var(--cor-terracota);
   --cor-marca-escura: var(--cor-terracota-escuro);
   --cor-texto: var(--cor-tinta);
-  --cor-texto-principal: #1c2430;
-  --cor-texto-secundario: #5e584e;
+  --cor-texto-principal: #2a211a;
+  --cor-texto-secundario: #6b5d4f;
   --cor-fundo: var(--cor-creme);
-  --cor-superficie: #fffdf9;
+  --cor-superficie: #fffaf2;
   --cor-erro: #9c2f2a;
   --cor-erro-fundo: #f8e6e2;
   --cor-sucesso: #1f6a45;
@@ -74,7 +74,7 @@
   --cor-aviso: #8a5a12;
   --cor-aviso-fundo: #f8efd4;
 
-  --cor-estrela: #a67c2d;
+  --cor-estrela: #9a7424;
   --cor-vaca: #2f6b4f;
   --cor-enigma: #35556e;
   --cor-cao: #9c2f2a;
