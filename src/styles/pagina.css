@@ -269,3 +269,315 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip {
+  border: 1px solid var(--cor-linha);
+  background: var(--cor-superficie);
+  color: var(--cor-texto-principal);
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  font: inherit;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.chip--ativo {
+  background: var(--cor-marca);
+  border-color: var(--cor-marca);
+  color: var(--cor-branco);
+  font-weight: 600;
+}
+
+.chips--fixos {
+  position: sticky;
+  top: 0.4rem;
+  z-index: 4;
+  background: color-mix(in srgb, var(--cor-fundo) 92%, transparent);
+  padding: 0.45rem 0;
+}
+
+.grade-produtos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.65rem;
+}
+
+.produto-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-height: 5.2rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--cor-linha);
+  border-radius: var(--raio);
+  background: var(--cor-superficie);
+  color: var(--cor-texto-principal);
+  font: inherit;
+  cursor: pointer;
+}
+
+.produto-card strong {
+  font-weight: 500;
+  font-size: 1.02rem;
+}
+
+.produto-card span {
+  font-weight: 700;
+  color: var(--cor-marca);
+}
+
+.produto-card:hover,
+.produto-card:focus-visible {
+  border-color: var(--cor-marca);
+  outline: none;
+}
+
+.passo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.passo button {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  border: 1px solid var(--cor-linha);
+  background: var(--cor-superficie);
+  color: var(--cor-texto-principal);
+  font: inherit;
+  font-size: 1.15rem;
+  cursor: pointer;
+}
+
+.passo strong {
+  min-width: 1.5rem;
+  text-align: center;
+  font-size: 1.05rem;
+}
+
+.pedido__rodape {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-linha);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra-media);
+}
+
+.pedido__rodape strong {
+  display: block;
+  font-size: 1.25rem;
+  color: var(--cor-marca);
+}
+
+.pedido__resumo-comanda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.pilula {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  background: color-mix(in srgb, var(--cor-marca) 18%, var(--cor-superficie));
+  color: var(--cor-texto-principal);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pedido-card,
+.mesa-card,
+.comanda-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--cor-linha);
+  border-radius: var(--raio);
+  background: var(--cor-superficie);
+}
+
+.pedido-card__topo,
+.linha-horario__topo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.7rem;
+  align-items: center;
+}
+
+.pedido-card__topo time,
+.linha-horario time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.pedido-card__itens,
+.linha-horario__itens {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pedido-card__itens li,
+.linha-horario__itens li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 0.55rem;
+  align-items: baseline;
+  margin: 0;
+}
+
+.pedido-card__itens strong,
+.linha-horario__itens strong {
+  color: var(--cor-marca);
+  font-size: 1.05rem;
+}
+
+.pedido-card__cliente,
+.pedido-card__total {
+  margin: 0;
+}
+
+.pedido-card__total {
+  font-weight: 700;
+}
+
+.grade-mesas,
+.grade-comandas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.mesa-card strong {
+  font-size: 1.15rem;
+}
+
+.lista-horarios {
+  display: flex;
+  flex-direction: column;
+}
+
+.linha-horario {
+  display: grid;
+  grid-template-columns: 4.2rem minmax(9rem, auto) minmax(0, 1fr) auto auto;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--cor-linha);
+}
+
+.linha-horario__legenda {
+  color: var(--cor-texto-secundario);
+  font-size: 0.75rem;
+}
+
+.linha-horario__pedido {
+  color: var(--cor-marca);
+}
+
+.lista-horarios__cabeca {
+  display: none;
+}
+
+.sugestoes {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  border: 1px solid var(--cor-linha);
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-leve);
+}
+
+.sugestoes button {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sugestoes button:hover,
+.sugestoes button:focus-visible {
+  background: color-mix(in srgb, var(--cor-marca) 14%, transparent);
+  outline: none;
+}
+
+.cardapio__lista {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: 2rem;
+}
+
+.cardapio__secao {
+  scroll-margin-top: 4.5rem;
+}
+
+.cardapio__nome {
+  font-weight: 400;
+  font-size: 1.08rem;
+}
+
+.cardapio__preco {
+  font-weight: 700;
+  color: var(--cor-marca);
+  font-size: 1.08rem;
+}
+
+.cardapio__item--indisponivel {
+  opacity: 0.72;
+}
+
+.escolha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+@media (min-width: 900px) {
+  .grade-mesas {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .grade-comandas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cardapio__lista {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cardapio__nome,
+  .cardapio__preco {
+    font-size: 1.15rem;
+  }
+}

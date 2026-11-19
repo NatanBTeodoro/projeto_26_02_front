@@ -27,6 +27,7 @@ function FormField({
   passo,
   minimo,
   dica = '',
+  aceitar,
 }) {
   return (
     <div className={`form-field ${erro ? 'form-field--erro' : ''}`}>
@@ -42,6 +43,7 @@ function FormField({
         obrigatorio={obrigatorio}
         passo={passo}
         minimo={minimo}
+        aceitar={aceitar}
       />
       {dica ? <Texto variante="dica">{dica}</Texto> : null}
       {erro ? <span className="form-field__erro">{erro}</span> : null}

@@ -5,6 +5,13 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Quadrante — engenharia de cardápio</title>
+    <script>
+      (function () {
+        var salvo = localStorage.getItem('tema')
+        var claro = window.matchMedia('(prefers-color-scheme: light)').matches
+        document.documentElement.dataset.tema = salvo === 'claro' || salvo === 'escuro' ? salvo : (claro ? 'claro' : 'escuro')
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

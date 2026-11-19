@@ -35,6 +35,7 @@ function Input({
   minimo,
   maximo,
   nome,
+  aceitar,
 }) {
   const classe = `input ${erro ? 'input--erro' : ''} ${tipo === 'file' ? 'input--arquivo' : ''}`
 
@@ -60,6 +61,7 @@ function Input({
       step={passo}
       min={minimo}
       max={maximo}
+      accept={aceitar || undefined}
     />
   )
 }

@@ -8,7 +8,7 @@ import Botao from '../../atomos/atomosJSX/Botao'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
-import { formatarBooleano, formatarMoeda } from '../../../utils/formatacao'
+import { formatarBooleano, formatarMoeda, normalizarBusca } from '../../../utils/formatacao'
 import { emVisaoGestor, lerSessao, visaoBloqueada } from '../../../utils/sessao'
 import ImportarCardapio from '../../organismos/organismosJSX/ImportarCardapio'
 
@@ -28,6 +28,8 @@ function Produtos() {
   const [erro, setErro] = useState('')
   const [aviso, setAviso] = useState('')
   const [pagina, setPagina] = useState(0)
+  const [busca, setBusca] = useState('')
+  const [categoriaFiltro, setCategoriaFiltro] = useState(null)
   const bloqueado = visaoBloqueada()
   const tamanho = 10
 
@@ -131,11 +133,23 @@ function Produtos() {
     }
   }
 
-  const totalPaginas = Math.max(1, Math.ceil(produtos.length / tamanho))
-  const paginaAtual = Math.min(pagina, totalPaginas - 1)
-  const produtosPagina = produtos.slice(paginaAtual * tamanho, paginaAtual * tamanho + tamanho)
-
   const categoriasOrdenadas = [...categorias].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }))
+  const termo = normalizarBusca(busca.trim())
+  const sugestoes = categoriaFiltro || !termo
+    ? []
+    : categoriasOrdenadas
+      .filter((categoria) => normalizarBusca(categoria.nome).includes(termo))
+      .slice(0, 8)
+  const produtosFiltrados = produtos.filter((produto) => {
+    if (categoriaFiltro) return String(produto.categoriaId) === String(categoriaFiltro.id)
+    if (!termo) return true
+    return normalizarBusca(produto.nome).includes(termo)
+      || normalizarBusca(produto.categoriaNome || '').includes(termo)
+  })
+  const totalPaginas = Math.max(1, Math.ceil(produtosFiltrados.length / tamanho))
+  const paginaAtual = Math.min(pagina, totalPaginas - 1)
+  const produtosPagina = produtosFiltrados.slice(paginaAtual * tamanho, paginaAtual * tamanho + tamanho)
+
   const opcoesCategoria = [
     { valor: '', rotulo: 'Selecione' },
     ...categoriasOrdenadas.filter((categoria) => categoria.ativa).map((categoria) => ({
@@ -199,6 +213,44 @@ function Produtos() {
               </div>
             </form>
             )}
+            <div className="busca-categoria">
+              <FormField
+                id="busca-produto"
+                rotulo="Buscar"
+                valor={busca}
+                onChange={(valor) => {
+                  setBusca(valor)
+                  setCategoriaFiltro(null)
+                  setPagina(0)
+                }}
+                placeholder="Nome ou categoria"
+              />
+              {categoriaFiltro ? (
+                <Botao
+                  texto={`Limpar categoria: ${categoriaFiltro.nome}`}
+                  variante="fantasma"
+                  onClick={() => { setCategoriaFiltro(null); setBusca(''); setPagina(0) }}
+                />
+              ) : null}
+              {sugestoes.length > 0 ? (
+                <ul className="sugestoes" role="listbox" aria-label="Categorias">
+                  {sugestoes.map((categoria) => (
+                    <li key={categoria.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCategoriaFiltro(categoria)
+                          setBusca(categoria.nome)
+                          setPagina(0)
+                        }}
+                      >
+                        {categoria.nome}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
             <table className="tabela">
               <thead>
                 <tr>

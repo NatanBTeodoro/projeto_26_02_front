@@ -16,7 +16,9 @@ import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import FormField from '../../moleculas/moleculasJSX/FormField'
 import Select from '../../atomos/atomosJSX/Select'
 import Botao from '../../atomos/atomosJSX/Botao'
+import Badge from '../../atomos/atomosJSX/Badge'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
+import CartaoPedido from '../../moleculas/moleculasJSX/CartaoPedido'
 import GraficoMatriz from '../../organismos/organismosJSX/GraficoMatriz'
 import GraficoCurvaAbc from '../../organismos/organismosJSX/GraficoCurvaAbc'
 import { apiJson } from '../../../services/api'
@@ -24,12 +26,15 @@ import { endpoints } from '../../../services/endpoints'
 import { emVisaoGestor, lerSessao } from '../../../utils/sessao'
 import {
   CORES_CLASSE,
-  formatarDataHora,
+  formatarHora,
   formatarMoeda,
   formatarPercentual,
   LEGENDAS_CLASSE,
+  normalizarBusca,
   rotuloClasse,
   rotuloStatus,
+  totalPedido,
+  varianteStatus,
 } from '../../../utils/formatacao'
 
 const CLASSES = ['ESTRELA', 'VACA_LEITEIRA', 'ENIGMA', 'CAO', 'DADO_INCOMPLETO']
@@ -242,7 +247,7 @@ function DashboardGestor() {
                     <XAxis dataKey="data" />
                     <YAxis />
                     <Tooltip formatter={(valor) => formatarMoeda(valor)} />
-                    <Line type="monotone" dataKey="valor" name="Faturamento" stroke="#1565c0" dot={false} />
+                    <Line type="monotone" dataKey="valor" name="Faturamento" stroke="var(--cor-marca)" dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -250,11 +255,28 @@ function DashboardGestor() {
             <section className="pagina__painel">
               <h2>Mais vendidos</h2>
               {painel.topItens?.length ? (
-                <ol>
-                  {painel.topItens.map((item) => (
-                    <li key={item.produtoId}>{item.quantidade} × {item.nome}</li>
-                  ))}
-                </ol>
+                <div className="tabela-rolagem">
+                  <table className="tabela">
+                    <thead>
+                      <tr>
+                        <th>Produto</th>
+                        <th>Qtd. vendida</th>
+                        <th>Valor unitário</th>
+                        <th>Valor total vendido</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {painel.topItens.map((item) => (
+                        <tr key={item.produtoId}>
+                          <td>{item.nome}</td>
+                          <td>{item.quantidade}</td>
+                          <td>{formatarMoeda(item.valorUnitario)}</td>
+                          <td>{formatarMoeda(item.valorTotal)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               ) : <p>Nenhuma venda no período.</p>}
             </section>
           </>
@@ -293,7 +315,8 @@ function DashboardGestor() {
                     <th>Categoria</th>
                     <th>Quantidade</th>
                     <th>Popularidade</th>
-                    <th>Margem</th>
+                    <th>Margem unitária</th>
+                    <th>Margem total</th>
                     <th className="tabela__classe">Classe</th>
                     <th>Sugestão</th>
                   </tr>
@@ -306,6 +329,7 @@ function DashboardGestor() {
                       <td>{item.quantidade}</td>
                       <td>{item.popularidade}%</td>
                       <td>{formatarMoeda(item.margem)}</td>
+                      <td>{item.margem == null ? '—' : formatarMoeda(Number(item.margem) * Number(item.quantidade))}</td>
                       <td className="tabela__classe">
                         <span className={`selo selo--${item.classe}`}>{rotuloClasse(item.classe)}</span>
                       </td>
@@ -326,6 +350,8 @@ function DashboardUsuario() {
   const [pedidos, setPedidos] = useState([])
   const [erro, setErro] = useState('')
   const [pagina, setPagina] = useState(0)
+  const [busca, setBusca] = useState('')
+  const [status, setStatus] = useState('')
   const tamanho = 10
 
   useEffect(() => {
@@ -334,7 +360,22 @@ function DashboardUsuario() {
       .catch((falha) => setErro(falha.message))
   }, [])
 
-  const porHorario = [...pedidos].sort((a, b) => String(b.dataHora).localeCompare(String(a.dataHora)))
+  const termo = normalizarBusca(busca.trim())
+  const porHorario = [...pedidos]
+    .sort((a, b) => String(b.dataHora).localeCompare(String(a.dataHora)))
+    .filter((pedido) => {
+      if (status && pedido.status !== status) return false
+      if (!termo) return true
+      const texto = normalizarBusca([
+        pedido.nomeCliente,
+        pedido.mesa,
+        pedido.comandaNumero,
+        pedido.comandaId,
+        ...(pedido.itens || []).map((item) => item.produtoNome),
+      ].join(' '))
+      return texto.includes(termo)
+    })
+  const valorGeral = pedidos.reduce((soma, pedido) => soma + totalPedido(pedido), 0)
   const grupos = Object.values(pedidos.reduce((mapa, pedido) => {
     const chave = pedido.comandaId ?? `sem-${pedido.id}`
     if (!mapa[chave]) {
@@ -354,72 +395,91 @@ function DashboardUsuario() {
   const paginaAtual = Math.min(pagina, totalPaginas - 1)
   const gruposPagina = grupos.slice(paginaAtual * tamanho, paginaAtual * tamanho + tamanho)
 
-  function linha(pedido) {
-    return (
-      <tr key={pedido.id}>
-        <td>{formatarDataHora(pedido.dataHora)}</td>
-        <td>{pedido.comandaNumero != null ? `#${pedido.comandaNumero}` : pedido.comandaId ? `#${pedido.comandaId}` : '—'}</td>
-        <td>{pedido.mesa}</td>
-        <td>{pedido.nomeCliente}</td>
-        <td>
-          {pedido.itens.map((item) => (
-            <div key={item.id}>{item.quantidade} × {item.produtoNome}</div>
-          ))}
-        </td>
-        <td>{rotuloStatus(pedido.status)}</td>
-      </tr>
-    )
-  }
-
   return (
     <TemplateAutenticado rotaAtual="/dashboard">
       <div className="pagina">
         <CabecalhoPagina titulo="Dashboard" descricao="Pedidos cadastrados por você, por horário e por comanda." />
         <MensagemErro texto={erro} />
+        <div className="cartoes">
+          <section className="pagina__painel cartao">
+            <span>Pedidos</span>
+            <strong>{pedidos.length}</strong>
+          </section>
+          <section className="pagina__painel cartao">
+            <span>Valor dos pedidos</span>
+            <strong>{formatarMoeda(valorGeral)}</strong>
+          </section>
+          <section className="pagina__painel cartao">
+            <span>Comandas</span>
+            <strong>{grupos.length}</strong>
+          </section>
+        </div>
         <section className="pagina__painel">
           <h2>Por horário</h2>
+          <div className="formulario__linha">
+            <FormField id="busca-horario" rotulo="Buscar" valor={busca} onChange={setBusca} placeholder="Cliente, produto, mesa ou comanda" />
+            <div>
+              <label htmlFor="filtro-status">Status</label>
+              <Select
+                id="filtro-status"
+                valor={status}
+                onChange={setStatus}
+                opcoes={[
+                  { valor: '', rotulo: 'Todos' },
+                  { valor: 'ATIVO', rotulo: 'Ativo' },
+                  { valor: 'ESTORNADO', rotulo: 'Estornado' },
+                  { valor: 'CANCELADO', rotulo: 'Cancelado' },
+                ]}
+              />
+            </div>
+          </div>
           <p>{porHorario.length} pedido(s)</p>
-          {porHorario.length === 0 ? <p>Nenhum pedido cadastrado.</p> : (
-            <div className="tabela-rolagem">
-              <table className="tabela">
-                <thead>
-                  <tr>
-                    <th>Quando</th>
-                    <th>Comanda</th>
-                    <th>Mesa</th>
-                    <th>Cliente</th>
-                    <th>Conteúdo</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>{porHorario.map(linha)}</tbody>
-              </table>
+          {porHorario.length === 0 ? <p>Nenhum pedido encontrado.</p> : (
+            <div className="lista-horarios">
+              {porHorario.map((pedido) => (
+                <article key={pedido.id} className="linha-horario">
+                  <time dateTime={pedido.dataHora}>{formatarHora(pedido.dataHora)}</time>
+                  <span className="pilula">
+                    #{pedido.comandaNumero ?? pedido.comandaId ?? '—'} · Mesa {pedido.mesa}
+                  </span>
+                  <div>
+                    <ul className="linha-horario__itens">
+                      <li className="linha-horario__legenda">
+                        <span />
+                        <span>Item</span>
+                        <span>Unitário</span>
+                        <span>Total do item</span>
+                      </li>
+                      {(pedido.itens || []).map((item) => (
+                        <li key={item.id}>
+                          <strong>{item.quantidade}×</strong>
+                          <span>{item.produtoNome}</span>
+                          <span>{formatarMoeda(item.precoUnitario)}</span>
+                          <span>{formatarMoeda(Number(item.precoUnitario || 0) * Number(item.quantidade || 0))}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p>{pedido.nomeCliente}</p>
+                  </div>
+                  <strong className="linha-horario__pedido">{formatarMoeda(totalPedido(pedido))}</strong>
+                  <Badge texto={rotuloStatus(pedido.status)} variante={varianteStatus(pedido.status)} />
+                </article>
+              ))}
             </div>
           )}
         </section>
         <section className="pagina__painel">
           <h2>Por comanda</h2>
           <p>{grupos.length} comanda(s)</p>
-          {gruposPagina.map((grupo) => (
-            <article key={grupo.chave}>
-              <h3>Comanda {grupo.numero != null ? `#${grupo.numero}` : 'sem número'} · {grupo.pedidos.length} pedido(s)</h3>
-              <div className="tabela-rolagem">
-                <table className="tabela">
-                  <thead>
-                    <tr>
-                      <th>Quando</th>
-                      <th>Comanda</th>
-                      <th>Mesa</th>
-                      <th>Cliente</th>
-                      <th>Conteúdo</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>{grupo.pedidos.map(linha)}</tbody>
-                </table>
-              </div>
-            </article>
-          ))}
+          <div className="grade-comandas">
+            {gruposPagina.map((grupo) => (
+              <article key={grupo.chave} className="comanda-card">
+                <h3>Comanda {grupo.numero != null ? `#${grupo.numero}` : 'sem número'}</h3>
+                <p>{grupo.pedidos.length} pedido(s)</p>
+                {grupo.pedidos.map((pedido) => <CartaoPedido key={pedido.id} pedido={pedido} />)}
+              </article>
+            ))}
+          </div>
           <div className="paginas-numeradas">
             {Array.from({ length: totalPaginas }, (_, indice) => (
               <Botao

@@ -88,6 +88,27 @@ export function formatarDataHora(valor) {
   return data.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
 }
 
+export function formatarHora(valor) {
+  if (!valor) return '—'
+  const data = new Date(valor)
+  if (Number.isNaN(data.getTime())) return String(valor)
+  return data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+}
+
+export function varianteStatus(status) {
+  if (status === 'ATIVO') return 'sucesso'
+  if (status === 'CANCELADO') return 'erro'
+  if (status === 'ESTORNADO') return 'incompleto'
+  return 'neutro'
+}
+
+export function totalPedido(pedido) {
+  return (pedido?.itens || []).reduce(
+    (soma, item) => soma + Number(item.precoUnitario || 0) * Number(item.quantidade || 0),
+    0,
+  )
+}
+
 export function formatarBooleano(valor) {
   if (valor === true) return 'Sim'
   if (valor === false) return 'Não'

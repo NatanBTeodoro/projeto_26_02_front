@@ -47,7 +47,10 @@
 
 .botao--desabilitado,
 .botao:disabled {
-  opacity: 0.55;
+  opacity: 1;
   cursor: not-allowed;
   transform: none;
+  background: var(--cor-creme-escuro);
+  color: var(--cor-texto-principal);
+  border-color: var(--cor-linha);
 }

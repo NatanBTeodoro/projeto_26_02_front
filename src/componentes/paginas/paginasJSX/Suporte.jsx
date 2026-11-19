@@ -21,6 +21,9 @@ const ASSUNTOS_GESTOR = [
   { valor: 'OUTRO', rotulo: 'Outro' },
 ]
 
+const ANEXOS_PERMITIDOS = ['jpg', 'jpeg', 'jfif', 'png', 'webp', 'pdf']
+const LIMITE_ANEXO = 5 * 1024 * 1024
+
 const STATUS = [
   { valor: 'ABERTA', rotulo: 'Aberta' },
   { valor: 'EM_ANDAMENTO', rotulo: 'Em andamento' },
@@ -29,6 +32,18 @@ const STATUS = [
 
 function destinoTexto(destino) {
   return destino === 'ADMINISTRADOR' ? 'Enviada ao administrador' : 'Enviada ao TI'
+}
+
+function erroAnexo(arquivo) {
+  if (!arquivo) return ''
+  if (arquivo.size > LIMITE_ANEXO) return 'O anexo passa de 5 MB.'
+  const nome = arquivo.name || ''
+  const ponto = nome.lastIndexOf('.')
+  const extensao = ponto >= 0 ? nome.slice(ponto + 1).toLowerCase() : ''
+  if (!ANEXOS_PERMITIDOS.includes(extensao)) {
+    return 'Envie uma imagem JPG, PNG, WEBP ou um PDF.'
+  }
+  return ''
 }
 
 function Suporte() {
@@ -68,8 +83,9 @@ function Suporte() {
       setErro('Escolha o assunto.')
       return
     }
-    if (arquivo && arquivo.size > 2 * 1024 * 1024) {
-      setErro('O anexo passa de 2 MB.')
+    const falhaAnexo = erroAnexo(arquivo)
+    if (falhaAnexo) {
+      setErro(falhaAnexo)
       return
     }
     try {
@@ -145,7 +161,15 @@ function Suporte() {
             <FormField id="assunto" rotulo="Assunto" valor={assunto} onChange={setAssunto} obrigatorio />
           )}
           <FormFieldTextarea id="descricao" rotulo="Descrição" valor={descricao} onChange={setDescricao} obrigatorio />
-          <FormField key={anexoChave} id="anexo" rotulo="Anexo" tipo="file" onChange={setArquivo} />
+          <FormField
+            key={anexoChave}
+            id="anexo"
+            rotulo="Anexo"
+            tipo="file"
+            aceitar=".jpg,.jpeg,.jfif,.png,.webp,.pdf"
+            dica="Uma imagem JPG, PNG, WEBP ou um PDF. O JFIF entra como JPEG. Só um arquivo, até 5 MB."
+            onChange={setArquivo}
+          />
           <Botao texto="Enviar reclamação" tipo="submit" />
         </form>
         <section className="pagina__painel">

@@ -10,12 +10,14 @@
 //   <TemplatePublico><FormLogin /></TemplatePublico>
 
 import Logo from '../../atomos/atomosJSX/Logo'
+import AlternarTema from '../../atomos/atomosJSX/AlternarTema'
 import Footer from '../../organismos/organismosJSX/Footer'
 import '../templatesCSS/TemplatePublico.css'
 
 function TemplatePublico({ children }) {
   return (
     <div className="template-publico">
+      <AlternarTema />
       <header className="template-publico__topo">
         <Logo />
       </header>

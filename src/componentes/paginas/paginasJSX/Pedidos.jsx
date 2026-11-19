@@ -5,11 +5,13 @@ import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import FormField from '../../moleculas/moleculasJSX/FormField'
 import Select from '../../atomos/atomosJSX/Select'
 import Botao from '../../atomos/atomosJSX/Botao'
+import Badge from '../../atomos/atomosJSX/Badge'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
+import CartaoPedido from '../../moleculas/moleculasJSX/CartaoPedido'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { emVisaoGestor, lerSessao, visaoBloqueada } from '../../../utils/sessao'
-import { formatarDataHora, formatarMoeda, normalizarBusca, rotuloStatus } from '../../../utils/formatacao'
+import { formatarDataHora, formatarMoeda, normalizarBusca, rotuloStatus, varianteStatus } from '../../../utils/formatacao'
 
 function rotuloComanda(comanda) {
   return `Comanda #${comanda.numero ?? comanda.id}`
@@ -31,6 +33,17 @@ function rotuloUsuario(pedido) {
   return `${nome} (${pedido.lancadoPor})`
 }
 
+function Passo({ valor, onChange, rotulo }) {
+  const numero = Math.max(1, Number(valor) || 1)
+  return (
+    <div className="passo" role="group" aria-label={rotulo}>
+      <button type="button" aria-label={`Diminuir ${rotulo}`} onClick={() => onChange(String(Math.max(1, numero - 1)))}>−</button>
+      <strong>{numero}</strong>
+      <button type="button" aria-label={`Aumentar ${rotulo}`} onClick={() => onChange(String(numero + 1))}>+</button>
+    </div>
+  )
+}
+
 function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item', comValores = false }) {
   const [categoriaId, setCategoriaId] = useState('')
   const [produtoId, setProdutoId] = useState('')
@@ -47,9 +60,7 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item',
     : daCategoria
   const total = itens.reduce((soma, item) => soma + Number(item.preco || 0) * Number(item.quantidade || 0), 0)
 
-  function incluir() {
-    const produto = produtos.find((item) => String(item.id) === produtoId)
-    const qtd = Number(quantidade)
+  function acrescentar(produto, qtd) {
     if (!produto || qtd < 1) {
       setErroLocal('Escolha um produto e uma quantidade maior que zero.')
       return
@@ -64,6 +75,12 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item',
       }
       return [...atual, { produtoId: produto.id, nome: produto.nome, quantidade: qtd, preco: produto.precoAtual }]
     })
+    if (comValores) setQuantidade('1')
+  }
+
+  function incluir() {
+    const produto = produtos.find((item) => String(item.id) === produtoId)
+    acrescentar(produto, Number(quantidade))
   }
 
   function alterarQuantidade(id, valor) {
@@ -75,16 +92,34 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item',
   return (
     <div className="formulario">
       <MensagemErro texto={erroLocal} />
-      <label htmlFor={`${prefixo}-categoria`}>Categoria</label>
-      <Select
-        id={`${prefixo}-categoria`}
-        valor={categoriaId}
-        onChange={(valor) => { setCategoriaId(valor); setProdutoId('') }}
-        opcoes={[
-          { valor: '', rotulo: 'Todas' },
-          ...categoriasOrdenadas.map((categoria) => ({ valor: String(categoria.id), rotulo: categoria.nome })),
-        ]}
-      />
+      {comValores ? (
+        <div className="chips" role="tablist" aria-label="Categoria">
+          <button type="button" className={categoriaId === '' ? 'chip chip--ativo' : 'chip'} onClick={() => setCategoriaId('')}>Todas</button>
+          {categoriasOrdenadas.map((categoria) => (
+            <button
+              key={categoria.id}
+              type="button"
+              className={categoriaId === String(categoria.id) ? 'chip chip--ativo' : 'chip'}
+              onClick={() => setCategoriaId(String(categoria.id))}
+            >
+              {categoria.nome}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <>
+          <label htmlFor={`${prefixo}-categoria`}>Categoria</label>
+          <Select
+            id={`${prefixo}-categoria`}
+            valor={categoriaId}
+            onChange={(valor) => { setCategoriaId(valor); setProdutoId('') }}
+            opcoes={[
+              { valor: '', rotulo: 'Todas' },
+              ...categoriasOrdenadas.map((categoria) => ({ valor: String(categoria.id), rotulo: categoria.nome })),
+            ]}
+          />
+        </>
+      )}
       {comValores ? (
         <FormField
           id={`${prefixo}-busca`}
@@ -94,23 +129,32 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item',
           placeholder="Nome do produto"
         />
       ) : null}
-      <div className="formulario__linha">
-        <div>
-          <label htmlFor={`${prefixo}-produto`}>Produto</label>
-          {comValores ? (
-            termo && produtosVisiveis.length === 0 ? (
-              <p>Nenhum produto encontrado</p>
-            ) : (
-              <ul className="lista-produtos" id={`${prefixo}-produto`}>
-                {produtosVisiveis.map((produto) => (
-                  <li key={produto.id} aria-selected={String(produto.id) === produtoId}>
-                    <button type="button" onClick={() => setProdutoId(String(produto.id))}>{produto.nome}</button>
-                    <span>{formatarMoeda(produto.precoAtual)}</span>
-                  </li>
-                ))}
-              </ul>
-            )
-          ) : (
+      {comValores ? (
+        <>
+          <div className="pedido__resumo-comanda">
+            <span>Quantidade</span>
+            <Passo valor={quantidade} onChange={setQuantidade} rotulo="quantidade do próximo item" />
+          </div>
+          {produtosVisiveis.length === 0 ? <p>Nenhum produto encontrado</p> : (
+            <div className="grade-produtos" id={`${prefixo}-produto`}>
+              {produtosVisiveis.map((produto) => (
+                <button
+                  key={produto.id}
+                  type="button"
+                  className="produto-card"
+                  onClick={() => acrescentar(produto, Math.max(1, Number(quantidade) || 1))}
+                >
+                  <strong>{produto.nome}</strong>
+                  <span>{formatarMoeda(produto.precoAtual)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="formulario__linha">
+          <div>
+            <label htmlFor={`${prefixo}-produto`}>Produto</label>
             <Select
               id={`${prefixo}-produto`}
               valor={produtoId}
@@ -120,11 +164,13 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item',
                 ...produtosVisiveis.map((produto) => ({ valor: String(produto.id), rotulo: produto.nome })),
               ]}
             />
-          )}
+          </div>
+          <FormField id={`${prefixo}-quantidade`} rotulo="Quantidade" tipo="number" valor={quantidade} onChange={setQuantidade} />
         </div>
-        <FormField id={`${prefixo}-quantidade`} rotulo="Quantidade" tipo="number" valor={quantidade} onChange={setQuantidade} />
-      </div>
-      <Botao texto="Adicionar item" variante="secundario" onClick={incluir} />
+      )}
+      {comValores ? null : <Botao texto="Adicionar item" variante="secundario" onClick={incluir} />}
+      <h3>Itens do pedido</h3>
+      {itens.length === 0 ? <p>Nenhum item adicionado.</p> : null}
       <ul className="rascunho">
         {itens.map((item) => (
           <li key={item.produtoId}>
@@ -132,14 +178,10 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item',
               <>
                 <span>{item.nome}</span>
                 <span>{formatarMoeda(item.preco)}</span>
-                <input
-                  className="input input--quantidade"
-                  type="number"
-                  min="1"
-                  step="1"
-                  aria-label={`Quantidade de ${item.nome}`}
-                  value={item.quantidade}
-                  onChange={(evento) => alterarQuantidade(item.produtoId, evento.target.value)}
+                <Passo
+                  valor={item.quantidade}
+                  rotulo={`quantidade de ${item.nome}`}
+                  onChange={(valor) => alterarQuantidade(item.produtoId, valor)}
                 />
                 <span>{formatarMoeda(Number(item.preco || 0) * Number(item.quantidade || 0))}</span>
               </>
@@ -154,8 +196,71 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item',
           </li>
         ))}
       </ul>
-      {comValores ? <p className="pedido__total">Total {formatarMoeda(total)}</p> : null}
+      {comValores ? (
+        <div className="pedido__rodape">
+          <div>
+            <span>{itens.length === 1 ? '1 item' : `${itens.length} itens`}</span>
+            <strong>{formatarMoeda(total)}</strong>
+          </div>
+          <Botao texto="Lançar pedido" tipo="submit" desabilitado={itens.length === 0} />
+        </div>
+      ) : null}
     </div>
+  )
+}
+
+function agruparMesas(pedidos) {
+  const mapa = new Map()
+  pedidos.forEach((pedido) => {
+    const mesa = pedido.mesa ?? '—'
+    const chave = String(mesa)
+    if (!mapa.has(chave)) mapa.set(chave, { chave, mesa, pedidos: [] })
+    mapa.get(chave).pedidos.push(pedido)
+  })
+  return [...mapa.values()].sort((a, b) => Number(a.mesa) - Number(b.mesa))
+}
+
+function GradeMesas({ pedidos }) {
+  const [pagina, setPagina] = useState(0)
+  const tamanho = 25
+  const mesas = agruparMesas(pedidos)
+  const totalPaginas = Math.max(1, Math.ceil(mesas.length / tamanho))
+  const paginaAtual = Math.min(pagina, totalPaginas - 1)
+  const visiveis = mesas.slice(paginaAtual * tamanho, paginaAtual * tamanho + tamanho)
+
+  return (
+    <section className="pagina__painel">
+      <h2>Mesas</h2>
+      {mesas.length === 0 ? <p>Nenhuma mesa com pedido.</p> : null}
+      <div className="grade-mesas">
+        {visiveis.map((mesa) => {
+          const recente = [...mesa.pedidos].sort((a, b) => String(b.dataHora).localeCompare(String(a.dataHora)))[0]
+          return (
+            <article key={mesa.chave} className="mesa-card">
+              <strong>Mesa {mesa.mesa}</strong>
+              <span className="pilula">#{recente?.comandaNumero ?? recente?.comandaId ?? '—'} · {mesa.pedidos.length} pedido(s)</span>
+              <span>{recente?.nomeCliente}</span>
+              {recente ? <Badge texto={rotuloStatus(recente.status)} variante={varianteStatus(recente.status)} /> : null}
+            </article>
+          )
+        })}
+      </div>
+      {mesas.length > tamanho ? (
+        <>
+          <div className="paginas-numeradas">
+            {Array.from({ length: totalPaginas }, (_, indice) => (
+              <Botao
+                key={indice}
+                texto={String(indice + 1)}
+                variante={indice === paginaAtual ? 'primario' : 'fantasma'}
+                onClick={() => setPagina(indice)}
+              />
+            ))}
+          </div>
+          <p>Página {paginaAtual + 1} de {totalPaginas} · até 25 mesas por página</p>
+        </>
+      ) : null}
+    </section>
   )
 }
 
@@ -168,6 +273,7 @@ function PedidosUsuario() {
   const [mesa, setMesa] = useState('')
   const [nomeCliente, setNomeCliente] = useState('')
   const [itens, setItens] = useState([])
+  const [outroNome, setOutroNome] = useState(false)
   const [erro, setErro] = useState('')
   const [aviso, setAviso] = useState('')
 
@@ -182,7 +288,14 @@ function PedidosUsuario() {
     setPedidos(listaPedidos)
     setCategorias(listaCategorias.filter((categoria) => categoria.ativa))
     setProdutos(listaProdutos.filter((produto) => produto.ativo))
-    setComandaId((atual) => atual || (listaComandas[0] ? String(listaComandas[0].id) : ''))
+    setComandaId((atual) => {
+      if (atual) return atual
+      const primeira = listaComandas[0]
+      if (!primeira) return ''
+      setMesa(primeira.mesa != null ? String(primeira.mesa) : '')
+      setNomeCliente(primeira.nomeCliente || '')
+      return String(primeira.id)
+    })
   }
 
   useEffect(() => {
@@ -196,6 +309,7 @@ function PedidosUsuario() {
       setComandaId(String(criada.id))
       setMesa('')
       setNomeCliente('')
+      setOutroNome(false)
       setAviso(`Comanda #${criada.numero ?? criada.id} aberta.`)
       await carregar()
     } catch (falha) {
@@ -229,6 +343,8 @@ function PedidosUsuario() {
   }
 
   const daComanda = pedidos.filter((pedido) => String(pedido.comandaId) === comandaId)
+  const comandaAtual = comandas.find((comanda) => String(comanda.id) === comandaId)
+  const comandaPronta = comandaAtual?.mesa != null && Boolean(comandaAtual?.nomeCliente)
 
   return (
     <TemplateAutenticado rotaAtual="/pedidos">
@@ -249,6 +365,7 @@ function PedidosUsuario() {
             valor={comandaId}
             onChange={(valor) => {
               setComandaId(valor)
+              setOutroNome(false)
               const escolhida = comandas.find((comanda) => String(comanda.id) === valor)
               setMesa(escolhida?.mesa != null ? String(escolhida.mesa) : '')
               setNomeCliente(escolhida?.nomeCliente || '')
@@ -260,20 +377,28 @@ function PedidosUsuario() {
           />
         </section>
         <form className="formulario pagina__painel" onSubmit={salvar}>
-          <FormField id="mesa" rotulo="Mesa" tipo="number" valor={mesa} onChange={setMesa} obrigatorio />
-          <FormField id="cliente" rotulo="Nome do cliente" valor={nomeCliente} onChange={setNomeCliente} obrigatorio />
+          {comandaPronta && !outroNome ? (
+            <div className="pedido__resumo-comanda">
+              <span className="pilula">#{comandaAtual.numero ?? comandaAtual.id} · Mesa {mesa}</span>
+              <span>{nomeCliente}</span>
+              <Botao texto="Outro nome" variante="fantasma" onClick={() => setOutroNome(true)} />
+            </div>
+          ) : (
+            <>
+              {comandaAtual?.mesa == null ? (
+                <FormField id="mesa" rotulo="Mesa" tipo="number" valor={mesa} onChange={setMesa} obrigatorio />
+              ) : null}
+              <FormField id="cliente" rotulo="Nome do cliente" valor={nomeCliente} onChange={setNomeCliente} obrigatorio />
+            </>
+          )}
           <SeletorItens categorias={categorias} produtos={produtos} itens={itens} setItens={setItens} comValores />
-          <Botao texto="Lançar pedido na comanda" tipo="submit" desabilitado={itens.length === 0} />
         </form>
         <section className="pagina__painel">
           <h2>Pedidos desta comanda</h2>
           {daComanda.length === 0 ? <p>Nenhum pedido nesta comanda.</p> : null}
-          {daComanda.map((pedido) => (
-            <p key={pedido.id}>
-              {formatarDataHora(pedido.dataHora)} · {numeroComanda(pedido)} · mesa {pedido.mesa} · {pedido.nomeCliente} · {conteudo(pedido)} · {rotuloStatus(pedido.status)}
-            </p>
-          ))}
+          {daComanda.map((pedido) => <CartaoPedido key={pedido.id} pedido={pedido} />)}
         </section>
+        <GradeMesas pedidos={pedidos} />
       </div>
     </TemplateAutenticado>
   )
@@ -297,7 +422,7 @@ function PedidosGestor() {
   const [itensEdicao, setItensEdicao] = useState([])
   const [mesaEdicao, setMesaEdicao] = useState('')
   const [clienteEdicao, setClienteEdicao] = useState('')
-  const [motivos, setMotivos] = useState({})
+  const [acoes, setAcoes] = useState({})
   const [erro, setErro] = useState('')
   const [aviso, setAviso] = useState('')
 
@@ -351,8 +476,12 @@ function PedidosGestor() {
     }
   }
 
+  function acaoDe(id) {
+    return acoes[id] || { tipo: '', motivo: '' }
+  }
+
   async function estornar(pedido) {
-    const motivo = (motivos[`e-${pedido.id}`] || '').trim()
+    const motivo = (acaoDe(pedido.id).motivo || '').trim()
     if (!motivo) {
       setErro('Informe o motivo do estorno.')
       return
@@ -368,7 +497,7 @@ function PedidosGestor() {
   }
 
   async function cancelar(pedido) {
-    const motivo = (motivos[`c-${pedido.id}`] || '').trim()
+    const motivo = (acaoDe(pedido.id).motivo || '').trim()
     if (!motivo) {
       setErro('Informe o motivo do cancelamento.')
       return
@@ -465,6 +594,7 @@ function PedidosGestor() {
             <Botao texto="Registrar pedido" tipo="submit" desabilitado={itens.length === 0 || !usuarioId} />
           </form>
         ) : null}
+        <GradeMesas pedidos={pedidos} />
         <div className="tabela-rolagem">
           <table className="tabela">
             <thead>
@@ -500,25 +630,41 @@ function PedidosGestor() {
                   </td>
                   <td>
                     {pedido.status === 'ATIVO' && !bloqueado ? (
-                      <div className="pedido__acoes">
-                        <div className="pedido__acao">
-                          <FormField
-                            id={`estorno-${pedido.id}`}
-                            rotulo="Motivo do estorno"
-                            valor={motivos[`e-${pedido.id}`] || ''}
-                            onChange={(valor) => setMotivos((atual) => ({ ...atual, [`e-${pedido.id}`]: valor }))}
-                          />
-                          <Botao texto="Estornar" variante="perigo" onClick={() => estornar(pedido)} />
+                      <div className="pedido__acao">
+                        <div className="escolha" role="radiogroup" aria-label={`Ação do pedido ${pedido.id}`}>
+                          <button
+                            type="button"
+                            className={acaoDe(pedido.id).tipo === 'estorno' ? 'chip chip--ativo' : 'chip'}
+                            onClick={() => setAcoes((atual) => ({ ...atual, [pedido.id]: { ...acaoDe(pedido.id), tipo: 'estorno' } }))}
+                          >
+                            Estornar
+                          </button>
+                          <button
+                            type="button"
+                            className={acaoDe(pedido.id).tipo === 'cancelamento' ? 'chip chip--ativo' : 'chip'}
+                            onClick={() => setAcoes((atual) => ({ ...atual, [pedido.id]: { ...acaoDe(pedido.id), tipo: 'cancelamento' } }))}
+                          >
+                            Cancelar
+                          </button>
                         </div>
-                        <div className="pedido__acao">
-                          <FormField
-                            id={`cancelar-${pedido.id}`}
-                            rotulo="Motivo do cancelamento"
-                            valor={motivos[`c-${pedido.id}`] || ''}
-                            onChange={(valor) => setMotivos((atual) => ({ ...atual, [`c-${pedido.id}`]: valor }))}
-                          />
-                          <Botao texto="Cancelar" variante="secundario" onClick={() => cancelar(pedido)} />
-                        </div>
+                        {acaoDe(pedido.id).tipo ? (
+                          <>
+                            <FormField
+                              id={`motivo-${pedido.id}`}
+                              rotulo={acaoDe(pedido.id).tipo === 'estorno' ? 'Motivo do estorno' : 'Motivo do cancelamento'}
+                              valor={acaoDe(pedido.id).motivo}
+                              onChange={(valor) => setAcoes((atual) => ({
+                                ...atual,
+                                [pedido.id]: { ...acaoDe(pedido.id), motivo: valor },
+                              }))}
+                            />
+                            <Botao
+                              texto={acaoDe(pedido.id).tipo === 'estorno' ? 'Confirmar estorno' : 'Confirmar cancelamento'}
+                              variante={acaoDe(pedido.id).tipo === 'estorno' ? 'perigo' : 'secundario'}
+                              onClick={() => (acaoDe(pedido.id).tipo === 'estorno' ? estornar(pedido) : cancelar(pedido))}
+                            />
+                          </>
+                        ) : null}
                         <Botao texto="Editar" variante="fantasma" onClick={() => iniciarEdicao(pedido)} />
                       </div>
                     ) : null}

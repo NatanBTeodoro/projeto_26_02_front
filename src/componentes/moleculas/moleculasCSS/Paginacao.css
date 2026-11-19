@@ -31,7 +31,8 @@
   border: 1px solid var(--cor-linha);
   border-radius: var(--raio-pequeno);
   padding: 0.45rem 0.55rem;
-  background: var(--cor-branco);
+  background: var(--cor-superficie);
+  color: var(--cor-texto-principal);
   font-weight: 500;
   color: var(--cor-texto-principal);
 }

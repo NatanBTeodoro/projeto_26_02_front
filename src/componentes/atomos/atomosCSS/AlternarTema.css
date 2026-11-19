@@ -1,0 +1,21 @@
+.tema-toggle {
+  position: fixed;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 40;
+  border: 1px solid var(--cor-linha);
+  background: var(--cor-superficie);
+  color: var(--cor-texto-principal);
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--sombra-leve);
+}
+
+.tema-toggle:hover {
+  border-color: var(--cor-marca);
+  color: var(--cor-marca);
+}
