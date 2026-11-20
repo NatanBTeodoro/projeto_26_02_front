@@ -1,17 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import TemplateAutenticado from '../../templates/templatesJSX/TemplateAutenticado'
 import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import FormField from '../../moleculas/moleculasJSX/FormField'
 import Select from '../../atomos/atomosJSX/Select'
 import Botao from '../../atomos/atomosJSX/Botao'
+import Label from '../../atomos/atomosJSX/Label'
 import Badge from '../../atomos/atomosJSX/Badge'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import CartaoPedido from '../../moleculas/moleculasJSX/CartaoPedido'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { emVisaoGestor, lerSessao, visaoBloqueada } from '../../../utils/sessao'
-import { formatarDataHora, formatarMoeda, normalizarBusca, rotuloStatus, varianteStatus } from '../../../utils/formatacao'
+import { formatarDataHora, formatarHora, formatarMoeda, normalizarBusca, rotuloStatus, totalPedido, varianteStatus } from '../../../utils/formatacao'
+import '../paginasCSS/PedidosGestor.css'
 
 function rotuloComanda(comanda) {
   return `Comanda #${comanda.numero ?? comanda.id}`
@@ -21,10 +23,6 @@ function numeroComanda(pedido) {
   if (pedido.comandaNumero != null) return `#${pedido.comandaNumero}`
   if (pedido.comandaId) return `#${pedido.comandaId}`
   return '—'
-}
-
-function conteudo(pedido) {
-  return pedido.itens.map((item) => `${item.quantidade} × ${item.produtoNome}`).join(', ')
 }
 
 function rotuloUsuario(pedido) {
@@ -220,7 +218,16 @@ function agruparMesas(pedidos) {
   return [...mapa.values()].sort((a, b) => Number(a.mesa) - Number(b.mesa))
 }
 
-function GradeMesas({ pedidos }) {
+function statusMesa(mesa, comandas) {
+  if (mesa.pedidos.some((pedido) => pedido.status === 'ATIVO')) {
+    return { texto: 'Ativo', variante: 'sucesso' }
+  }
+  const aberta = (comandas || []).some((comanda) => comanda.aberta && String(comanda.mesa) === String(mesa.mesa))
+  if (aberta) return { texto: 'Aguardando', variante: 'incompleto' }
+  return { texto: 'Finalizado', variante: 'neutro' }
+}
+
+function GradeMesas({ pedidos, comandas = [], mesaSelecionada = '', onSelecionar }) {
   const [pagina, setPagina] = useState(0)
   const tamanho = 25
   const mesas = agruparMesas(pedidos)
@@ -235,13 +242,33 @@ function GradeMesas({ pedidos }) {
       <div className="grade-mesas">
         {visiveis.map((mesa) => {
           const recente = [...mesa.pedidos].sort((a, b) => String(b.dataHora).localeCompare(String(a.dataHora)))[0]
-          return (
-            <article key={mesa.chave} className="mesa-card">
+          const numero = recente?.comandaNumero ?? recente?.comandaId ?? '—'
+          const clientes = [...new Set(mesa.pedidos.map((pedido) => pedido.nomeCliente).filter(Boolean))].join(', ')
+          const selo = onSelecionar
+            ? statusMesa(mesa, comandas)
+            : { texto: rotuloStatus(recente?.status), variante: varianteStatus(recente?.status) }
+          const ativa = mesaSelecionada !== '' && String(mesa.mesa) === String(mesaSelecionada)
+          const conteudo = (
+            <>
               <strong>Mesa {mesa.mesa}</strong>
-              <span className="pilula">#{recente?.comandaNumero ?? recente?.comandaId ?? '—'} · {mesa.pedidos.length} pedido(s)</span>
-              <span>{recente?.nomeCliente}</span>
-              {recente ? <Badge texto={rotuloStatus(recente.status)} variante={varianteStatus(recente.status)} /> : null}
-            </article>
+              <span className="pilula">#{numero} · {mesa.pedidos.length} {mesa.pedidos.length === 1 ? 'pedido' : 'pedidos'}</span>
+              <span>{clientes}</span>
+              {recente ? <Badge texto={selo.texto} variante={selo.variante} /> : null}
+            </>
+          )
+          if (!onSelecionar) {
+            return <article key={mesa.chave} className="mesa-card">{conteudo}</article>
+          }
+          return (
+            <button
+              key={mesa.chave}
+              type="button"
+              className={ativa ? 'mesa-card mesa-card--ativa' : 'mesa-card'}
+              aria-pressed={ativa}
+              onClick={() => onSelecionar(mesa.mesa)}
+            >
+              {conteudo}
+            </button>
           )
         })}
       </div>
@@ -257,10 +284,71 @@ function GradeMesas({ pedidos }) {
               />
             ))}
           </div>
-          <p>Página {paginaAtual + 1} de {totalPaginas} · até 25 mesas por página</p>
+          <p>Página {paginaAtual + 1} de {totalPaginas}</p>
         </>
       ) : null}
     </section>
+  )
+}
+
+function diaChave(valor) {
+  const data = new Date(valor)
+  if (Number.isNaN(data.getTime())) return ''
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(data)
+}
+
+function rotuloDia(chave) {
+  if (!chave) return 'Sem data'
+  if (chave === diaChave(new Date())) return 'Hoje'
+  const [ano, mes, dia] = chave.split('-')
+  return `${dia}/${mes}/${ano}`
+}
+
+function seloPedido(pedido) {
+  if (pedido.status === 'CANCELADO') return { texto: 'Cancelado', variante: 'erro' }
+  if (pedido.status === 'ESTORNADO') return { texto: 'Estornado', variante: 'incompleto' }
+  if (pedido.alteracoes?.length) return { texto: 'Editado', variante: 'marca' }
+  return { texto: 'Ativo', variante: 'sucesso' }
+}
+
+function MenuAcoes({ onEditar, onEstornar, onCancelar }) {
+  const [aberto, setAberto] = useState(false)
+  const caixa = useRef(null)
+
+  useEffect(() => {
+    if (!aberto) return undefined
+    function fechar(evento) {
+      if (!caixa.current?.contains(evento.target)) setAberto(false)
+    }
+    document.addEventListener('mousedown', fechar)
+    return () => document.removeEventListener('mousedown', fechar)
+  }, [aberto])
+
+  function escolher(acao) {
+    setAberto(false)
+    acao()
+  }
+
+  return (
+    <div className="menu-acoes" ref={caixa}>
+      <button
+        className="menu-acoes__abrir"
+        type="button"
+        aria-label="Ações"
+        aria-haspopup="menu"
+        aria-expanded={aberto}
+        onClick={() => setAberto((atual) => !atual)}
+      >
+        ⋯
+      </button>
+      {aberto ? (
+        <div className="menu-acoes__lista" role="menu">
+          <button type="button" role="menuitem" onClick={() => escolher(onEditar)}>Editar</button>
+          <button type="button" role="menuitem" onClick={() => escolher(onEstornar)}>Estornar</button>
+          <button type="button" role="menuitem" onClick={() => escolher(onCancelar)}>Cancelar</button>
+        </div>
+      ) : null}
+    </div>
   )
 }
 
@@ -422,7 +510,13 @@ function PedidosGestor() {
   const [itensEdicao, setItensEdicao] = useState([])
   const [mesaEdicao, setMesaEdicao] = useState('')
   const [clienteEdicao, setClienteEdicao] = useState('')
-  const [acoes, setAcoes] = useState({})
+  const [todasComandas, setTodasComandas] = useState(null)
+  const [busca, setBusca] = useState('')
+  const [mesaFiltro, setMesaFiltro] = useState('')
+  const [comandaFiltro, setComandaFiltro] = useState('')
+  const [statusFiltro, setStatusFiltro] = useState('')
+  const [usuarioFiltro, setUsuarioFiltro] = useState('')
+  const [modal, setModal] = useState(null)
   const [erro, setErro] = useState('')
   const [aviso, setAviso] = useState('')
 
@@ -434,9 +528,15 @@ function PedidosGestor() {
       apiJson(endpoints.produtos),
     ])
     setPedidos(listaPedidos)
-    setUsuarios(listaUsuarios.filter((usuario) => usuario.perfil === 'USUARIO' && usuario.ativo))
+    const operadores = listaUsuarios.filter((usuario) => usuario.perfil === 'USUARIO')
+    setUsuarios(operadores.filter((usuario) => usuario.ativo))
     setCategorias(listaCategorias.filter((categoria) => categoria.ativa))
     setProdutos(listaProdutos.filter((produto) => produto.ativo))
+    const listas = await Promise.all(
+      operadores.map((usuario) => apiJson(`${endpoints.comandas}?usuarioId=${usuario.id}`).catch(() => null)),
+    )
+    const carregadas = listas.filter((lista) => Array.isArray(lista))
+    setTodasComandas(carregadas.length ? carregadas.flat() : null)
   }
 
   useEffect(() => {
@@ -452,6 +552,17 @@ function PedidosGestor() {
       .then(setComandas)
       .catch((falha) => setErro(falha.message))
   }, [usuarioId])
+
+  useEffect(() => {
+    if (!modal && !editando) return undefined
+    function tecla(evento) {
+      if (evento.key !== 'Escape') return
+      setModal(null)
+      setEditando(null)
+    }
+    document.addEventListener('keydown', tecla)
+    return () => document.removeEventListener('keydown', tecla)
+  }, [modal, editando])
 
   async function salvar(evento) {
     evento.preventDefault()
@@ -476,36 +587,21 @@ function PedidosGestor() {
     }
   }
 
-  function acaoDe(id) {
-    return acoes[id] || { tipo: '', motivo: '' }
+  function abrirAcao(pedido, tipo) {
+    setEditando(null)
+    setModal({ id: pedido.id, tipo, motivo: '' })
   }
 
-  async function estornar(pedido) {
-    const motivo = (acaoDe(pedido.id).motivo || '').trim()
-    if (!motivo) {
-      setErro('Informe o motivo do estorno.')
-      return
-    }
+  async function confirmarModal(evento) {
+    evento.preventDefault()
+    const motivo = (modal?.motivo || '').trim()
+    if (!modal || !motivo) return
     setErro('')
+    const caminho = modal.tipo === 'estorno' ? endpoints.estorno(modal.id) : endpoints.cancelamento(modal.id)
     try {
-      await apiJson(endpoints.estorno(pedido.id), { method: 'POST', body: JSON.stringify({ motivo }) })
-      setAviso('Pedido estornado.')
-      await carregar()
-    } catch (falha) {
-      setErro(falha.message)
-    }
-  }
-
-  async function cancelar(pedido) {
-    const motivo = (acaoDe(pedido.id).motivo || '').trim()
-    if (!motivo) {
-      setErro('Informe o motivo do cancelamento.')
-      return
-    }
-    setErro('')
-    try {
-      await apiJson(endpoints.cancelamento(pedido.id), { method: 'POST', body: JSON.stringify({ motivo }) })
-      setAviso('Pedido cancelado.')
+      await apiJson(caminho, { method: 'POST', body: JSON.stringify({ motivo }) })
+      setModal(null)
+      setAviso(modal.tipo === 'estorno' ? 'Pedido estornado.' : 'Pedido cancelado.')
       await carregar()
     } catch (falha) {
       setErro(falha.message)
@@ -513,6 +609,7 @@ function PedidosGestor() {
   }
 
   function iniciarEdicao(pedido) {
+    setModal(null)
     setEditando(pedido.id)
     setMesaEdicao(String(pedido.mesa ?? ''))
     setClienteEdicao(pedido.nomeCliente || '')
@@ -545,22 +642,74 @@ function PedidosGestor() {
     }
   }
 
+  const abertas = (todasComandas || []).filter((comanda) => comanda.aberta)
+  const ativos = pedidos.filter((pedido) => pedido.status === 'ATIVO')
+  const comandasAbertas = todasComandas
+    ? abertas.length
+    : new Set(ativos.map((pedido) => pedido.comandaId).filter(Boolean)).size
+  const mesasOcupadas = todasComandas
+    ? new Set(abertas.map((comanda) => comanda.mesa).filter((valor) => valor != null)).size
+    : new Set(ativos.map((pedido) => pedido.mesa).filter((valor) => valor != null)).size
+  const itensVendidos = ativos.reduce(
+    (soma, pedido) => soma + (pedido.itens || []).reduce((parcial, item) => parcial + Number(item.quantidade || 0), 0),
+    0,
+  )
+  const termo = normalizarBusca(busca)
+  const visiveis = [...pedidos]
+    .filter((pedido) => {
+      if (mesaFiltro && String(pedido.mesa) !== String(mesaFiltro)) return false
+      if (comandaFiltro && String(pedido.comandaId) !== comandaFiltro) return false
+      if (usuarioFiltro && String(pedido.usuarioId) !== usuarioFiltro) return false
+      if (statusFiltro === 'EDITADO' && !(pedido.status === 'ATIVO' && pedido.alteracoes?.length)) return false
+      if (statusFiltro && statusFiltro !== 'EDITADO' && pedido.status !== statusFiltro) return false
+      if (!termo) return true
+      const texto = normalizarBusca(`${pedido.nomeCliente || ''} ${(pedido.itens || []).map((item) => item.produtoNome).join(' ')}`)
+      return texto.includes(termo)
+    })
+    .sort((a, b) => String(b.dataHora).localeCompare(String(a.dataHora)))
+  const grupos = []
+  visiveis.forEach((pedido) => {
+    const chave = diaChave(pedido.dataHora)
+    const grupo = grupos.find((item) => item.chave === chave)
+    if (grupo) grupo.pedidos.push(pedido)
+    else grupos.push({ chave, pedidos: [pedido] })
+  })
+  const mesasOpcoes = [...new Set(pedidos.map((pedido) => pedido.mesa).filter((valor) => valor != null))]
+    .sort((a, b) => Number(a) - Number(b))
+  const comandasOpcoes = [...new Map(
+    pedidos.filter((pedido) => pedido.comandaId).map((pedido) => [pedido.comandaId, `#${pedido.comandaNumero ?? pedido.comandaId}`]),
+  ).entries()]
+  const usuariosOpcoes = [...new Map(
+    pedidos.filter((pedido) => pedido.usuarioId).map((pedido) => [pedido.usuarioId, pedido.usuarioNome || 'Usuário removido']),
+  ).entries()]
+  const pedidoModal = modal ? pedidos.find((pedido) => pedido.id === modal.id) : null
+
+  function limparFiltros() {
+    setBusca('')
+    setMesaFiltro('')
+    setComandaFiltro('')
+    setStatusFiltro('')
+    setUsuarioFiltro('')
+  }
+
   return (
     <TemplateAutenticado rotaAtual="/pedidos">
-      <div className="pagina">
-        <CabecalhoPagina
-          titulo="Pedidos"
-          descricao="Lista com o usuário, a mesa e o conteúdo. Estorno, cancelamento e edição pedem motivo. O horário fica registrado."
-        />
+      <div className="pagina pedidos-gestor">
+        <div className="pedidos-topo">
+          <CabecalhoPagina
+            titulo="Pedidos"
+            descricao="Estorno, cancelamento e edição exigem motivo. O horário fica registrado."
+          />
+          {!bloqueado ? (
+            <Botao
+              texto={mostrarFormulario ? 'Fechar lançamento' : 'Registrar pedido como usuário'}
+              onClick={() => setMostrarFormulario((atual) => !atual)}
+            />
+          ) : null}
+        </div>
         <MensagemErro texto={erro} />
         {aviso ? <p>{aviso}</p> : null}
-        {!bloqueado ? (
-          <Botao
-            texto={mostrarFormulario ? 'Fechar lançamento' : 'Registrar pedido como usuário'}
-            variante="secundario"
-            onClick={() => setMostrarFormulario((atual) => !atual)}
-          />
-        ) : <p>Restaurante fechado ou inativo: os pedidos podem ser consultados, mas não alterados.</p>}
+        {bloqueado ? <p>Restaurante fechado ou inativo: os pedidos podem ser consultados, mas não alterados.</p> : null}
         {mostrarFormulario && !bloqueado ? (
           <form className="formulario pagina__painel" onSubmit={salvar}>
             <label htmlFor="usuario">Usuário</label>
@@ -594,104 +743,185 @@ function PedidosGestor() {
             <Botao texto="Registrar pedido" tipo="submit" desabilitado={itens.length === 0 || !usuarioId} />
           </form>
         ) : null}
-        <GradeMesas pedidos={pedidos} />
-        <div className="tabela-rolagem">
-          <table className="tabela">
-            <thead>
-              <tr>
-                <th>Quando</th>
-                <th>Usuário</th>
-                <th>Comanda</th>
-                <th>Mesa</th>
-                <th>Cliente</th>
-                <th>Conteúdo</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {pedidos.map((pedido) => (
-                <tr key={pedido.id}>
-                  <td>{formatarDataHora(pedido.dataHora)}</td>
-                  <td>{rotuloUsuario(pedido)}</td>
-                  <td>{numeroComanda(pedido)}</td>
-                  <td>{pedido.mesa}</td>
-                  <td>{pedido.nomeCliente}</td>
-                  <td>{conteudo(pedido)}</td>
-                  <td>
-                    {rotuloStatus(pedido.status)}
-                    {pedido.status === 'ESTORNADO' ? ` · ${pedido.motivoEstorno} · ${pedido.autorEstorno || ''} · ${formatarDataHora(pedido.dataHoraEstorno)}` : ''}
-                    {pedido.status === 'CANCELADO' ? ` · ${pedido.motivoCancelamento} · ${pedido.autorCancelamento || ''} · ${formatarDataHora(pedido.dataHoraCancelamento)}` : ''}
-                    {pedido.alteracoes?.map((alteracao) => (
-                      <div key={alteracao.id}>
-                        {formatarDataHora(alteracao.dataHora)} · {alteracao.autor}: {alteracao.descricao} ({alteracao.motivo})
-                      </div>
-                    ))}
-                  </td>
-                  <td>
-                    {pedido.status === 'ATIVO' && !bloqueado ? (
-                      <div className="pedido__acao">
-                        <div className="escolha" role="radiogroup" aria-label={`Ação do pedido ${pedido.id}`}>
-                          <button
-                            type="button"
-                            className={acaoDe(pedido.id).tipo === 'estorno' ? 'chip chip--ativo' : 'chip'}
-                            onClick={() => setAcoes((atual) => ({ ...atual, [pedido.id]: { ...acaoDe(pedido.id), tipo: 'estorno' } }))}
-                          >
-                            Estornar
-                          </button>
-                          <button
-                            type="button"
-                            className={acaoDe(pedido.id).tipo === 'cancelamento' ? 'chip chip--ativo' : 'chip'}
-                            onClick={() => setAcoes((atual) => ({ ...atual, [pedido.id]: { ...acaoDe(pedido.id), tipo: 'cancelamento' } }))}
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                        {acaoDe(pedido.id).tipo ? (
-                          <>
-                            <FormField
-                              id={`motivo-${pedido.id}`}
-                              rotulo={acaoDe(pedido.id).tipo === 'estorno' ? 'Motivo do estorno' : 'Motivo do cancelamento'}
-                              valor={acaoDe(pedido.id).motivo}
-                              onChange={(valor) => setAcoes((atual) => ({
-                                ...atual,
-                                [pedido.id]: { ...acaoDe(pedido.id), motivo: valor },
-                              }))}
-                            />
-                            <Botao
-                              texto={acaoDe(pedido.id).tipo === 'estorno' ? 'Confirmar estorno' : 'Confirmar cancelamento'}
-                              variante={acaoDe(pedido.id).tipo === 'estorno' ? 'perigo' : 'secundario'}
-                              onClick={() => (acaoDe(pedido.id).tipo === 'estorno' ? estornar(pedido) : cancelar(pedido))}
-                            />
-                          </>
-                        ) : null}
-                        <Botao texto="Editar" variante="fantasma" onClick={() => iniciarEdicao(pedido)} />
-                      </div>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {editando && !bloqueado ? (
-          <form className="formulario pagina__painel" onSubmit={salvarEdicao}>
-            <h2>Editar pedido</h2>
-            <FormField id="mesa-edicao" rotulo="Mesa" tipo="number" valor={mesaEdicao} onChange={setMesaEdicao} obrigatorio />
-            <FormField id="cliente-edicao" rotulo="Nome do cliente" valor={clienteEdicao} onChange={setClienteEdicao} obrigatorio />
-            <SeletorItens
-              prefixo="edicao"
-              categorias={categorias}
-              produtos={produtos}
-              itens={itensEdicao}
-              setItens={setItensEdicao}
-            />
-            <FormField id="motivo-edicao" rotulo="Motivo da edição" valor={motivoEdicao} onChange={setMotivoEdicao} obrigatorio />
-            <div className="formulario__acoes">
-              <Botao texto="Salvar edição" tipo="submit" />
-              <Botao texto="Fechar" variante="fantasma" onClick={() => setEditando(null)} />
+        <section className="cartoes pedidos-metricas">
+          <article className="pagina__painel metrica">
+            <strong>{pedidos.length}</strong>
+            <span>Total de pedidos</span>
+          </article>
+          <article className="pagina__painel metrica">
+            <strong>{comandasAbertas}</strong>
+            <span>Comandas abertas</span>
+          </article>
+          <article className="pagina__painel metrica">
+            <strong>{mesasOcupadas}</strong>
+            <span>Mesas ocupadas</span>
+          </article>
+          <article className="pagina__painel metrica">
+            <strong>{itensVendidos}</strong>
+            <span>Itens vendidos</span>
+          </article>
+        </section>
+        <GradeMesas
+          pedidos={pedidos}
+          comandas={todasComandas || []}
+          mesaSelecionada={mesaFiltro}
+          onSelecionar={(mesaEscolhida) => setMesaFiltro((atual) => (
+            String(atual) === String(mesaEscolhida) ? '' : String(mesaEscolhida)
+          ))}
+        />
+        <section className="pagina__painel lista-pedidos">
+          <div className="filtros-pedidos">
+            <FormField id="busca-pedido" rotulo="Busca" valor={busca} onChange={setBusca} placeholder="Cliente ou item" />
+            <div className="form-field">
+              <Label htmlFor="filtro-mesa" texto="Mesa" />
+              <Select
+                id="filtro-mesa"
+                valor={mesaFiltro}
+                onChange={setMesaFiltro}
+                opcoes={[{ valor: '', rotulo: 'Todas' }, ...mesasOpcoes.map((valor) => ({ valor: String(valor), rotulo: `Mesa ${valor}` }))]}
+              />
             </div>
-          </form>
+            <div className="form-field">
+              <Label htmlFor="filtro-comanda" texto="Comanda" />
+              <Select
+                id="filtro-comanda"
+                valor={comandaFiltro}
+                onChange={setComandaFiltro}
+                opcoes={[{ valor: '', rotulo: 'Todas' }, ...comandasOpcoes.map(([id, rotulo]) => ({ valor: String(id), rotulo }))]}
+              />
+            </div>
+            <div className="form-field">
+              <Label htmlFor="filtro-status" texto="Status" />
+              <Select
+                id="filtro-status"
+                valor={statusFiltro}
+                onChange={setStatusFiltro}
+                opcoes={[
+                  { valor: '', rotulo: 'Todos' },
+                  { valor: 'ATIVO', rotulo: 'Ativo' },
+                  { valor: 'EDITADO', rotulo: 'Editado' },
+                  { valor: 'ESTORNADO', rotulo: 'Estornado' },
+                  { valor: 'CANCELADO', rotulo: 'Cancelado' },
+                ]}
+              />
+            </div>
+            <div className="form-field">
+              <Label htmlFor="filtro-usuario" texto="Usuário" />
+              <Select
+                id="filtro-usuario"
+                valor={usuarioFiltro}
+                onChange={setUsuarioFiltro}
+                opcoes={[{ valor: '', rotulo: 'Todos' }, ...usuariosOpcoes.map(([id, rotulo]) => ({ valor: String(id), rotulo }))]}
+              />
+            </div>
+            <Botao texto="Limpar filtros" variante="fantasma" onClick={limparFiltros} />
+          </div>
+          {visiveis.length === 0 ? <p>{pedidos.length === 0 ? 'Nenhum pedido registrado.' : 'Nenhum pedido com esses filtros.'}</p> : null}
+          {grupos.map((grupo) => (
+            <div key={grupo.chave || 'sem-data'}>
+              <h3 className="pedido-dia">{rotuloDia(grupo.chave)}</h3>
+              {grupo.pedidos.map((pedido) => {
+                const selo = seloPedido(pedido)
+                const encerrado = pedido.status === 'ESTORNADO' || pedido.status === 'CANCELADO'
+                return (
+                  <article key={pedido.id} className={encerrado ? 'pedido-linha pedido-linha--encerrado' : 'pedido-linha'}>
+                    <div className="pedido-linha__quando">
+                      <time className="pedido-linha__hora" dateTime={pedido.dataHora}>{formatarHora(pedido.dataHora)}</time>
+                    </div>
+                    <div>
+                      <div className="pedido-card__topo">
+                        <span className="pilula">{numeroComanda(pedido)} · Mesa {pedido.mesa ?? '—'}</span>
+                        <strong>{pedido.nomeCliente}</strong>
+                        <Badge texto={selo.texto} variante={selo.variante} />
+                      </div>
+                      <p className="pedido-linha__quem">por {rotuloUsuario(pedido)}</p>
+                      <ul className="pedido-linha__itens">
+                        {(pedido.itens || []).map((item) => (
+                          <li key={item.id}>
+                            <strong className="pedido-linha__qtd">{item.quantidade}×</strong>
+                            <span className="pedido-linha__nome">{item.produtoNome}</span>
+                            <span className="pedido-linha__precos">
+                              <span>{formatarMoeda(item.precoUnitario)}</span>
+                              <strong>{formatarMoeda(Number(item.precoUnitario || 0) * Number(item.quantidade || 0))}</strong>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="pedido-linha__total">Total {formatarMoeda(totalPedido(pedido))}</p>
+                      {pedido.status === 'ESTORNADO' ? (
+                        <p className="pedido-linha__nota">
+                          Estorno: {pedido.motivoEstorno} · {pedido.autorEstorno || '—'} · {formatarDataHora(pedido.dataHoraEstorno)}
+                        </p>
+                      ) : null}
+                      {pedido.status === 'CANCELADO' ? (
+                        <p className="pedido-linha__nota">
+                          Cancelamento: {pedido.motivoCancelamento} · {pedido.autorCancelamento || '—'} · {formatarDataHora(pedido.dataHoraCancelamento)}
+                        </p>
+                      ) : null}
+                      {pedido.alteracoes?.map((alteracao) => (
+                        <p key={alteracao.id} className="pedido-linha__nota">
+                          {formatarDataHora(alteracao.dataHora)} · {alteracao.autor}: {alteracao.descricao} ({alteracao.motivo})
+                        </p>
+                      ))}
+                    </div>
+                    {pedido.status === 'ATIVO' && !bloqueado ? (
+                      <MenuAcoes
+                        onEditar={() => iniciarEdicao(pedido)}
+                        onEstornar={() => abrirAcao(pedido, 'estorno')}
+                        onCancelar={() => abrirAcao(pedido, 'cancelamento')}
+                      />
+                    ) : <span />}
+                  </article>
+                )
+              })}
+            </div>
+          ))}
+        </section>
+        {modal && pedidoModal ? (
+          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+            <button className="modal__velo" type="button" aria-label="Voltar" onClick={() => setModal(null)} />
+            <form className="modal__caixa" onSubmit={confirmarModal}>
+              <h2 id="modal-titulo">{modal.tipo === 'estorno' ? 'Estornar pedido' : 'Cancelar pedido'}</h2>
+              <p>{numeroComanda(pedidoModal)} · Mesa {pedidoModal.mesa ?? '—'} · {pedidoModal.nomeCliente}</p>
+              <FormField
+                id="motivo-acao"
+                rotulo={modal.tipo === 'estorno' ? 'Motivo do estorno' : 'Motivo do cancelamento'}
+                valor={modal.motivo}
+                onChange={(valor) => setModal((atual) => (atual ? { ...atual, motivo: valor } : atual))}
+                obrigatorio
+              />
+              <div className="formulario__acoes">
+                <Botao texto="Confirmar" tipo="submit" desabilitado={!modal.motivo.trim()} />
+                <Botao texto="Voltar" variante="fantasma" onClick={() => setModal(null)} />
+              </div>
+            </form>
+          </div>
+        ) : null}
+        {editando && !bloqueado ? (
+          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-edicao">
+            <button className="modal__velo" type="button" aria-label="Voltar" onClick={() => setEditando(null)} />
+            <form className="modal__caixa modal__caixa--larga" onSubmit={salvarEdicao}>
+              <h2 id="modal-edicao">Editar pedido</h2>
+              <FormField id="mesa-edicao" rotulo="Mesa" tipo="number" valor={mesaEdicao} onChange={setMesaEdicao} obrigatorio />
+              <FormField id="cliente-edicao" rotulo="Nome do cliente" valor={clienteEdicao} onChange={setClienteEdicao} obrigatorio />
+              <SeletorItens
+                prefixo="edicao"
+                categorias={categorias}
+                produtos={produtos}
+                itens={itensEdicao}
+                setItens={setItensEdicao}
+              />
+              <FormField id="motivo-edicao" rotulo="Motivo da edição" valor={motivoEdicao} onChange={setMotivoEdicao} obrigatorio />
+              <div className="formulario__acoes">
+                <Botao
+                  texto="Confirmar"
+                  tipo="submit"
+                  desabilitado={!motivoEdicao.trim() || itensEdicao.length === 0 || !String(mesaEdicao).trim() || !clienteEdicao.trim()}
+                />
+                <Botao texto="Voltar" variante="fantasma" onClick={() => setEditando(null)} />
+              </div>
+            </form>
+          </div>
         ) : null}
       </div>
     </TemplateAutenticado>
