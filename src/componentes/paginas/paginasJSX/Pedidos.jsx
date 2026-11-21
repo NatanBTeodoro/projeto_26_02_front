@@ -238,7 +238,7 @@ function GradeMesas({ pedidos, comandas = [], mesaSelecionada = '', onSelecionar
   return (
     <section className="pagina__painel">
       <h2>Mesas</h2>
-      {mesas.length === 0 ? <p>Nenhuma mesa com pedido.</p> : null}
+      {mesas.length === 0 ? <p>Nenhuma mesa ocupada.</p> : null}
       <div className="grade-mesas">
         {visiveis.map((mesa) => {
           const recente = [...mesa.pedidos].sort((a, b) => String(b.dataHora).localeCompare(String(a.dataHora)))[0]
@@ -302,6 +302,20 @@ function rotuloDia(chave) {
   if (chave === diaChave(new Date())) return 'Hoje'
   const [ano, mes, dia] = chave.split('-')
   return `${dia}/${mes}/${ano}`
+}
+
+function ocupaMesa(pedido) {
+  return pedido.status === 'ATIVO'
+}
+
+function entraNoTotal(pedido) {
+  return pedido.status === 'ATIVO' || pedido.status === 'PAGO'
+}
+
+function totalDaComanda(pedidos, comandaId) {
+  const lista = pedidos.filter((pedido) => String(pedido.comandaId) === String(comandaId) && entraNoTotal(pedido))
+  if (lista.length < 2) return null
+  return lista.reduce((soma, pedido) => soma + totalPedido(pedido), 0)
 }
 
 function seloPedido(pedido) {
@@ -431,9 +445,11 @@ function PedidosUsuario() {
     }
   }
 
-  const daComanda = pedidos.filter((pedido) => String(pedido.comandaId) === comandaId)
+  const daComanda = pedidos.filter((pedido) => String(pedido.comandaId) === comandaId && pedido.status === 'ATIVO')
+  const historico = pedidos.filter((pedido) => pedido.status !== 'ATIVO')
   const comandaAtual = comandas.find((comanda) => String(comanda.id) === comandaId)
   const comandaPronta = comandaAtual?.mesa != null && Boolean(comandaAtual?.nomeCliente)
+  const totalSelecionado = totalDaComanda(pedidos, comandaId)
 
   return (
     <TemplateAutenticado rotaAtual="/pedidos">
@@ -484,13 +500,96 @@ function PedidosUsuario() {
         </form>
         <section className="pagina__painel">
           <h2>Pedidos desta comanda</h2>
-          {daComanda.length === 0 ? <p>Nenhum pedido nesta comanda.</p> : null}
+          {daComanda.length === 0 ? <p>Nenhum pedido ativo nesta comanda.</p> : null}
           {daComanda.map((pedido) => <CartaoPedido key={pedido.id} pedido={pedido} />)}
+          {totalSelecionado != null ? (
+            <p className="pedido-comanda-total">Total da comanda {formatarMoeda(totalSelecionado)}</p>
+          ) : null}
         </section>
-        <GradeMesas pedidos={pedidos} />
+        <section className="pagina__painel">
+          <h2>Histórico</h2>
+          <p>Pedidos pagos, cancelados e estornados. A mesa desses pedidos já foi liberada.</p>
+          {historico.length === 0 ? <p>Nenhum pedido no histórico.</p> : null}
+          {historico.map((pedido) => <CartaoPedido key={pedido.id} pedido={pedido} />)}
+        </section>
+        <GradeMesas pedidos={pedidos.filter(ocupaMesa)} />
       </div>
     </TemplateAutenticado>
   )
+}
+
+function agruparPorDia(lista) {
+  const grupos = []
+  lista.forEach((pedido) => {
+    const chave = diaChave(pedido.dataHora)
+    const grupo = grupos.find((item) => item.chave === chave)
+    if (grupo) grupo.pedidos.push(pedido)
+    else grupos.push({ chave, pedidos: [pedido] })
+  })
+  return grupos
+}
+
+function LinhasPedido({ pedidos, bloqueado, onEditar, onEstornar, onCancelar }) {
+  return agruparPorDia(pedidos).map((grupo) => (
+    <div key={grupo.chave || 'sem-data'}>
+      <h3 className="pedido-dia">{rotuloDia(grupo.chave)}</h3>
+      {grupo.pedidos.map((pedido) => {
+        const selo = seloPedido(pedido)
+        const encerrado = pedido.status === 'ESTORNADO' || pedido.status === 'CANCELADO'
+        return (
+          <article key={pedido.id} className={encerrado ? 'pedido-linha pedido-linha--encerrado' : 'pedido-linha'}>
+            <div className="pedido-linha__quando">
+              <time className="pedido-linha__hora" dateTime={pedido.dataHora}>{formatarHora(pedido.dataHora)}</time>
+            </div>
+            <div>
+              <div className="pedido-card__topo">
+                <span className="pilula">{numeroComanda(pedido)} · Mesa {pedido.mesa ?? '—'}</span>
+                <strong>{pedido.nomeCliente}</strong>
+                <Badge texto={selo.texto} variante={selo.variante} />
+              </div>
+              <p className="pedido-linha__quem">por {rotuloUsuario(pedido)}</p>
+              <ul className="pedido-linha__itens">
+                {(pedido.itens || []).map((item) => (
+                  <li key={item.id}>
+                    <strong className="pedido-linha__qtd">{item.quantidade}×</strong>
+                    <span className="pedido-linha__nome">{item.produtoNome}</span>
+                    <span className="pedido-linha__precos">
+                      <span>Unitário {formatarMoeda(item.precoUnitario)}</span>
+                      <strong>Total {formatarMoeda(Number(item.precoUnitario || 0) * Number(item.quantidade || 0))}</strong>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="pedido-linha__total">Total {formatarMoeda(totalPedido(pedido))}</p>
+              {pedido.status === 'ESTORNADO' ? (
+                <p className="pedido-linha__nota">
+                  Estorno: {pedido.motivoEstorno} · {pedido.autorEstorno || '—'} · {formatarDataHora(pedido.dataHoraEstorno)}
+                </p>
+              ) : null}
+              {pedido.status === 'CANCELADO' ? (
+                <p className="pedido-linha__nota">
+                  Cancelamento: {pedido.motivoCancelamento} · {pedido.autorCancelamento || '—'} · {formatarDataHora(pedido.dataHoraCancelamento)}
+                </p>
+              ) : null}
+              {pedido.alteracoes?.map((alteracao) => (
+                <p key={alteracao.id} className="pedido-linha__nota">
+                  {formatarDataHora(alteracao.dataHora)} · {alteracao.autor}: {alteracao.descricao} ({alteracao.motivo})
+                </p>
+              ))}
+            </div>
+            {(pedido.status === 'ATIVO' || pedido.status === 'PAGO') && !bloqueado ? (
+              <MenuAcoes
+                somenteEstorno={pedido.status === 'PAGO'}
+                onEditar={() => onEditar(pedido)}
+                onEstornar={() => onEstornar(pedido)}
+                onCancelar={() => onCancelar(pedido)}
+              />
+            ) : <span />}
+          </article>
+        )
+      })}
+    </div>
+  ))
 }
 
 function PedidosGestor() {
@@ -664,9 +763,7 @@ function PedidosGestor() {
   const comandasAbertas = todasComandas
     ? abertas.length
     : new Set(ativos.map((pedido) => pedido.comandaId).filter(Boolean)).size
-  const mesasOcupadas = todasComandas
-    ? new Set(abertas.map((comanda) => comanda.mesa).filter((valor) => valor != null)).size
-    : new Set(ativos.map((pedido) => pedido.mesa).filter((valor) => valor != null)).size
+  const mesasOcupadas = new Set(ativos.map((pedido) => pedido.mesa).filter((valor) => valor != null)).size
   const itensVendidos = pagos.reduce(
     (soma, pedido) => soma + (pedido.itens || []).reduce((parcial, item) => parcial + Number(item.quantidade || 0), 0),
     0,
@@ -684,13 +781,10 @@ function PedidosGestor() {
       return texto.includes(termo)
     })
     .sort((a, b) => String(b.dataHora).localeCompare(String(a.dataHora)))
-  const grupos = []
-  visiveis.forEach((pedido) => {
-    const chave = diaChave(pedido.dataHora)
-    const grupo = grupos.find((item) => item.chave === chave)
-    if (grupo) grupo.pedidos.push(pedido)
-    else grupos.push({ chave, pedidos: [pedido] })
-  })
+  const haFiltro = Boolean(termo || mesaFiltro || comandaFiltro || statusFiltro || usuarioFiltro)
+  const ativosVisiveis = visiveis.filter((pedido) => pedido.status === 'ATIVO')
+  const historicoVisiveis = visiveis.filter((pedido) => pedido.status !== 'ATIVO')
+  const totalSelecionado = comandaFiltro ? totalDaComanda(pedidos, comandaFiltro) : null
   const mesasOpcoes = [...new Set(pedidos.map((pedido) => pedido.mesa).filter((valor) => valor != null))]
     .sort((a, b) => Number(a) - Number(b))
   const comandasOpcoes = [...new Map(
@@ -783,23 +877,27 @@ function PedidosGestor() {
             <h2>Comandas abertas</h2>
             <p>Fechar a comanda marca os pedidos ativos como pagos. Pedidos ainda abertos não entram nas análises.</p>
             <ul>
-              {abertas.map((comanda) => (
-                <li key={comanda.id}>
-                  <span>
-                    #{comanda.numero ?? comanda.id}
-                    {' · Mesa '}
-                    {comanda.mesa ?? '—'}
-                    {' · '}
-                    {comanda.nomeCliente || 'Sem cliente'}
-                  </span>
-                  <Botao texto="Fechar" variante="secundario" desabilitado={bloqueado} onClick={() => setFechando(comanda)} />
-                </li>
-              ))}
+              {abertas.map((comanda) => {
+                const total = totalDaComanda(pedidos, comanda.id)
+                return (
+                  <li key={comanda.id}>
+                    <span>
+                      #{comanda.numero ?? comanda.id}
+                      {' · Mesa '}
+                      {comanda.mesa ?? '—'}
+                      {' · '}
+                      {comanda.nomeCliente || 'Sem cliente'}
+                      {total != null ? ` · Total ${formatarMoeda(total)}` : ''}
+                    </span>
+                    <Botao texto="Fechar" variante="secundario" desabilitado={bloqueado} onClick={() => setFechando(comanda)} />
+                  </li>
+                )
+              })}
             </ul>
           </section>
         ) : null}
         <GradeMesas
-          pedidos={pedidos}
+          pedidos={ativos}
           comandas={todasComandas || []}
           mesaSelecionada={mesaFiltro}
           onSelecionar={(mesaEscolhida) => setMesaFiltro((atual) => (
@@ -854,67 +952,28 @@ function PedidosGestor() {
             </div>
             <Botao texto="Limpar filtros" variante="fantasma" onClick={limparFiltros} />
           </div>
-          {visiveis.length === 0 ? <p>{pedidos.length === 0 ? 'Nenhum pedido registrado.' : 'Nenhum pedido com esses filtros.'}</p> : null}
-          {grupos.map((grupo) => (
-            <div key={grupo.chave || 'sem-data'}>
-              <h3 className="pedido-dia">{rotuloDia(grupo.chave)}</h3>
-              {grupo.pedidos.map((pedido) => {
-                const selo = seloPedido(pedido)
-                const encerrado = pedido.status === 'ESTORNADO' || pedido.status === 'CANCELADO'
-                return (
-                  <article key={pedido.id} className={encerrado ? 'pedido-linha pedido-linha--encerrado' : 'pedido-linha'}>
-                    <div className="pedido-linha__quando">
-                      <time className="pedido-linha__hora" dateTime={pedido.dataHora}>{formatarHora(pedido.dataHora)}</time>
-                    </div>
-                    <div>
-                      <div className="pedido-card__topo">
-                        <span className="pilula">{numeroComanda(pedido)} · Mesa {pedido.mesa ?? '—'}</span>
-                        <strong>{pedido.nomeCliente}</strong>
-                        <Badge texto={selo.texto} variante={selo.variante} />
-                      </div>
-                      <p className="pedido-linha__quem">por {rotuloUsuario(pedido)}</p>
-                      <ul className="pedido-linha__itens">
-                        {(pedido.itens || []).map((item) => (
-                          <li key={item.id}>
-                            <strong className="pedido-linha__qtd">{item.quantidade}×</strong>
-                            <span className="pedido-linha__nome">{item.produtoNome}</span>
-                            <span className="pedido-linha__precos">
-                              <span>Unitário {formatarMoeda(item.precoUnitario)}</span>
-                              <strong>Total {formatarMoeda(Number(item.precoUnitario || 0) * Number(item.quantidade || 0))}</strong>
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                      <p className="pedido-linha__total">Total {formatarMoeda(totalPedido(pedido))}</p>
-                      {pedido.status === 'ESTORNADO' ? (
-                        <p className="pedido-linha__nota">
-                          Estorno: {pedido.motivoEstorno} · {pedido.autorEstorno || '—'} · {formatarDataHora(pedido.dataHoraEstorno)}
-                        </p>
-                      ) : null}
-                      {pedido.status === 'CANCELADO' ? (
-                        <p className="pedido-linha__nota">
-                          Cancelamento: {pedido.motivoCancelamento} · {pedido.autorCancelamento || '—'} · {formatarDataHora(pedido.dataHoraCancelamento)}
-                        </p>
-                      ) : null}
-                      {pedido.alteracoes?.map((alteracao) => (
-                        <p key={alteracao.id} className="pedido-linha__nota">
-                          {formatarDataHora(alteracao.dataHora)} · {alteracao.autor}: {alteracao.descricao} ({alteracao.motivo})
-                        </p>
-                      ))}
-                    </div>
-                    {(pedido.status === 'ATIVO' || pedido.status === 'PAGO') && !bloqueado ? (
-                      <MenuAcoes
-                        somenteEstorno={pedido.status === 'PAGO'}
-                        onEditar={() => iniciarEdicao(pedido)}
-                        onEstornar={() => abrirAcao(pedido, 'estorno')}
-                        onCancelar={() => abrirAcao(pedido, 'cancelamento')}
-                      />
-                    ) : <span />}
-                  </article>
-                )
-              })}
-            </div>
-          ))}
+          {totalSelecionado != null ? (
+            <p className="pedido-comanda-total">Total da comanda {formatarMoeda(totalSelecionado)}</p>
+          ) : null}
+          <h2>Pedidos ativos</h2>
+          {ativosVisiveis.length === 0 ? <p>{haFiltro ? 'Nenhum pedido ativo com esses filtros.' : 'Nenhum pedido ativo.'}</p> : null}
+          <LinhasPedido
+            pedidos={ativosVisiveis}
+            bloqueado={bloqueado}
+            onEditar={iniciarEdicao}
+            onEstornar={(pedido) => abrirAcao(pedido, 'estorno')}
+            onCancelar={(pedido) => abrirAcao(pedido, 'cancelamento')}
+          />
+          <h2>Histórico</h2>
+          <p>Pedidos pagos, cancelados e estornados. A mesa desses pedidos já foi liberada.</p>
+          {historicoVisiveis.length === 0 ? <p>{haFiltro ? 'Nenhum pedido no histórico com esses filtros.' : 'Nenhum pedido no histórico.'}</p> : null}
+          <LinhasPedido
+            pedidos={historicoVisiveis}
+            bloqueado={bloqueado}
+            onEditar={iniciarEdicao}
+            onEstornar={(pedido) => abrirAcao(pedido, 'estorno')}
+            onCancelar={(pedido) => abrirAcao(pedido, 'cancelamento')}
+          />
         </section>
         {modal && pedidoModal ? (
           <div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">

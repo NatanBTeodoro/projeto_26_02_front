@@ -408,6 +408,14 @@ function DashboardGestor() {
                 <strong>{formatarMoeda(painel.faturamento)}</strong>
               </section>
               <section className="pagina__painel cartao">
+                <span>Lucro bruto</span>
+                <strong>{formatarMoeda(painel.lucroBruto)}</strong>
+              </section>
+              <section className="pagina__painel cartao">
+                <span>Margem média</span>
+                <strong>{formatarPercentual(painel.margemMedia)}</strong>
+              </section>
+              <section className="pagina__painel cartao">
                 <span>Pedidos</span>
                 <strong>{painel.totalPedidos}</strong>
               </section>
@@ -433,28 +441,15 @@ function DashboardGestor() {
             <section className="pagina__painel">
               <h2>Mais vendidos</h2>
               {painel.topItens?.length ? (
-                <div className="tabela-rolagem">
-                  <table className="tabela">
-                    <thead>
-                      <tr>
-                        <th>Produto</th>
-                        <th>Qtd. vendida</th>
-                        <th>Valor unitário</th>
-                        <th>Valor total vendido</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {painel.topItens.map((item) => (
-                        <tr key={item.produtoId}>
-                          <td>{item.nome}</td>
-                          <td>{item.quantidade}</td>
-                          <td>{formatarMoeda(item.valorUnitario)}</td>
-                          <td>{formatarMoeda(item.valorTotal)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <ol className="mais-vendidos">
+                  {painel.topItens.map((item) => (
+                    <li key={item.produtoId}>
+                      <strong>{item.nome}</strong>
+                      <span>{item.quantidade} un.</span>
+                      <span>{formatarMoeda(item.valorTotal)}</span>
+                    </li>
+                  ))}
+                </ol>
               ) : <p>Nenhuma venda no período.</p>}
             </section>
           </>
@@ -506,8 +501,9 @@ function DashboardGestor() {
                     <th>Categoria</th>
                     <th>Quantidade</th>
                     <th>Popularidade</th>
-                    <th>Margem unitária</th>
-                    <th>Margem total</th>
+                    <th>Lucro unitário</th>
+                    <th>Lucro total</th>
+                    <th>Margem</th>
                     <th className="tabela__classe">Classe</th>
                     <th>Sugestão</th>
                   </tr>
@@ -518,9 +514,10 @@ function DashboardGestor() {
                       <td>{item.nome}</td>
                       <td>{item.categoria}</td>
                       <td>{item.quantidade}</td>
-                      <td>{item.popularidade}%</td>
+                      <td>{formatarPercentual(item.popularidade)}</td>
                       <td>{formatarMoeda(item.margem)}</td>
                       <td>{item.margem == null ? '—' : formatarMoeda(Number(item.margem) * Number(item.quantidade))}</td>
+                      <td>{formatarPercentual(item.margemPercentual)}</td>
                       <td className="tabela__classe">
                         <span className={`selo selo--${item.classe}`}>{rotuloClasse(item.classe)}</span>
                       </td>

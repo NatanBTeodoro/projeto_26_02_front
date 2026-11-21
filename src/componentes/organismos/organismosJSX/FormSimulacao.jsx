@@ -44,7 +44,7 @@ function FormSimulacao({ produtoId = '', onSubmit, enviando = false }) {
     <form className="form-simulacao formulario" onSubmit={aoEnviar}>
       <LegendaMetodo metodo="POST" caminho={endpoints.simular} />
       <p className="aviso-claro">
-        A simulação não altera o cardápio. A popularidade permanece a do período; a margem média do cardápio é recalculada com o preço novo.
+        A simulação não altera o cardápio. A popularidade permanece a do período; o lucro médio do cardápio é recalculado com o preço novo.
       </p>
       <div className="formulario__linha">
         <FormField id="sim-produto" rotulo="Produto" tipo="number" minimo="1" valor={id} onChange={setId} obrigatorio />

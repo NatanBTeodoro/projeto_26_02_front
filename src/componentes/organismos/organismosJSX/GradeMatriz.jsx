@@ -15,10 +15,10 @@ import { formatarMoeda, formatarNumero, rotuloClasse } from '../../../utils/form
 import '../organismosCSS/GradeMatriz.css'
 
 const QUADRANTES = [
-  { classe: 'ENIGMA', variante: 'enigma', eixo: 'Margem alta · pouca saída' },
-  { classe: 'ESTRELA', variante: 'estrela', eixo: 'Margem alta · muita saída' },
-  { classe: 'CAO', variante: 'cao', eixo: 'Margem baixa · pouca saída' },
-  { classe: 'VACA_LEITEIRA', variante: 'vaca', eixo: 'Margem baixa · muita saída' },
+  { classe: 'ENIGMA', variante: 'enigma', eixo: 'Lucro alto · pouca saída' },
+  { classe: 'ESTRELA', variante: 'estrela', eixo: 'Lucro alto · muita saída' },
+  { classe: 'CAO', variante: 'cao', eixo: 'Lucro baixo · pouca saída' },
+  { classe: 'VACA_LEITEIRA', variante: 'vaca', eixo: 'Lucro baixo · muita saída' },
 ]
 
 function GradeMatriz({ itens = [] }) {
@@ -39,7 +39,7 @@ function GradeMatriz({ itens = [] }) {
                 {grupo.length === 0 ? <li className="grade-matriz__vazio">Nenhum item nesta página.</li> : grupo.map((item) => (
                   <li key={item.id}>
                     <Link to={`/produtos/${item.produtoId}`}>Produto {item.produtoId}</Link>
-                    <span>pop. {formatarNumero(item.popularidade)}% · margem {formatarMoeda(item.margem)}</span>
+                    <span>pop. {formatarNumero(item.popularidade)}% · lucro {formatarMoeda(item.margem)}</span>
                   </li>
                 ))}
               </ul>

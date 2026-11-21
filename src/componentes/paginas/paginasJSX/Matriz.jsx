@@ -8,12 +8,24 @@ import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import GraficoCurvaAbc from '../../organismos/organismosJSX/GraficoCurvaAbc'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
-import { formatarBooleano, formatarMoeda, formatarPercentual, rotuloPerfil } from '../../../utils/formatacao'
+import { formatarBooleano, formatarMoeda, formatarPercentual, rotuloClasse, rotuloPerfil } from '../../../utils/formatacao'
 
 function iso(data) {
   const mes = String(data.getMonth() + 1).padStart(2, '0')
   const dia = String(data.getDate()).padStart(2, '0')
   return `${data.getFullYear()}-${mes}-${dia}`
+}
+
+function textoVariacao(item) {
+  if (item.variacaoTexto) return item.variacaoTexto
+  if (item.variacaoLucro == null) return '—'
+  const numero = Number(item.variacaoLucro)
+  const sinal = numero > 0 ? '+' : ''
+  return `${sinal}${formatarPercentual(numero)}`
+}
+
+function contarFaixa(itens, faixa) {
+  return itens.filter((item) => item.faixa === faixa).length
 }
 
 function rotuloRestaurante(restaurante) {
@@ -70,7 +82,7 @@ function Matriz() {
       <div className="pagina">
         <CabecalhoPagina
           titulo="Matriz"
-          descricao="Curva ABC de lucro por produto do restaurante escolhido. Restaurante fechado aparece com essa indicação e não é editável."
+          descricao="Quais produtos sustentam o restaurante e de que tipo são: a faixa ABC mostra o peso no lucro e a classe Kasavana & Smith mostra o tipo do produto."
         />
         <MensagemErro texto={erro} />
         <form className="formulario pagina__painel" onSubmit={consultar}>
@@ -97,47 +109,75 @@ function Matriz() {
               checked={mostrarFaixas}
               onChange={(evento) => setMostrarFaixas(evento.target.checked)}
             />
-            {' '}Mostrar faixas A, B e C
+            {' '}Colorir o gráfico por faixa
           </label>
           <Botao texto="Calcular" tipo="submit" />
         </form>
         {escolhido?.status === 'FECHADO' ? <p>Este restaurante está fechado e não pode ser editado.</p> : null}
         {curva ? (
-          <section className="pagina__painel">
-            <h2>Curva ABC por produto</h2>
-            <p>Lucro bruto: {formatarMoeda(curva.lucroBruto)}</p>
-            {curva.linhasSemCusto > 0 ? (
-              <p>
-                {curva.linhasSemCusto} item(ns) sem custo ficaram fora do lucro.
-                {curva.foraDaCurva?.length ? ` Fora da curva: ${curva.foraDaCurva.join(', ')}.` : ''}
-              </p>
-            ) : null}
-            <GraficoCurvaAbc itens={curva.itens} mostrarFaixas={mostrarFaixas} />
-            <div className="tabela-rolagem">
-              <table className="tabela">
-                <thead>
-                  <tr>
-                    <th>Produto</th>
-                    <th>Lucro</th>
-                    <th>Participação</th>
-                    <th>Acumulado</th>
-                    {mostrarFaixas ? <th>Faixa</th> : null}
-                  </tr>
-                </thead>
-                <tbody>
-                  {curva.itens.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.nome}{item.dadoIncompleto ? ' (dado incompleto)' : ''}</td>
-                      <td>{formatarMoeda(item.lucro)}</td>
-                      <td>{formatarPercentual(item.participacao)}</td>
-                      <td>{formatarPercentual(item.acumulado)}</td>
-                      {mostrarFaixas ? <td>{item.faixa}</td> : null}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <>
+            <div className="cartoes">
+              <section className="pagina__painel cartao">
+                <span>Faturamento</span>
+                <strong>{formatarMoeda(curva.faturamento)}</strong>
+              </section>
+              <section className="pagina__painel cartao">
+                <span>Lucro bruto</span>
+                <strong>{formatarMoeda(curva.lucroBruto)}</strong>
+              </section>
+              <section className="pagina__painel cartao">
+                <span>Margem</span>
+                <strong>{formatarPercentual(curva.margemPercentual)}</strong>
+              </section>
+              <section className="pagina__painel cartao">
+                <span>Produtos por faixa</span>
+                <strong>A {contarFaixa(curva.itens, 'A')} · B {contarFaixa(curva.itens, 'B')} · C {contarFaixa(curva.itens, 'C')}</strong>
+              </section>
             </div>
-          </section>
+            <section className="pagina__painel">
+              <h2>Curva ABC por produto</h2>
+              <p>A faixa diz quanto o produto pesa no lucro. A classe diz que tipo de produto ele é.</p>
+              {curva.linhasSemCusto > 0 ? (
+                <p>
+                  {curva.linhasSemCusto} item(ns) sem custo ficaram fora do lucro.
+                  {curva.foraDaCurva?.length ? ` Fora da curva: ${curva.foraDaCurva.join(', ')}.` : ''}
+                </p>
+              ) : null}
+              <GraficoCurvaAbc itens={curva.itens} mostrarFaixas={mostrarFaixas} />
+              <div className="tabela-rolagem">
+                <table className="tabela">
+                  <thead>
+                    <tr>
+                      <th>Produto</th>
+                      <th>Qtd. vendida</th>
+                      <th>Lucro</th>
+                      <th>Participação</th>
+                      <th>Acumulado</th>
+                      <th>Margem</th>
+                      <th>Faixa</th>
+                      <th>Classe K&S</th>
+                      <th>Variação do lucro</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {curva.itens.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.nome}{item.dadoIncompleto ? ' (dado incompleto)' : ''}</td>
+                        <td>{item.quantidade ?? '—'}</td>
+                        <td>{formatarMoeda(item.lucro)}</td>
+                        <td>{formatarPercentual(item.participacao)}</td>
+                        <td>{formatarPercentual(item.acumulado)}</td>
+                        <td>{formatarPercentual(item.margemPercentual)}</td>
+                        <td>{item.faixa}</td>
+                        <td>{item.classe ? <span className={`selo selo--${item.classe}`}>{rotuloClasse(item.classe)}</span> : '—'}</td>
+                        <td>{textoVariacao(item)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </>
         ) : null}
         {curva ? (
           <section className="pagina__painel">

@@ -75,17 +75,23 @@ button.mesa-card {
   grid-template-columns: 5.2rem minmax(0, 1fr) auto;
   gap: 0.85rem 1.1rem;
   align-items: start;
-  padding: 1rem 0.65rem;
-  border-bottom: 1px solid var(--cor-linha);
-  border-radius: var(--raio-pequeno);
+  margin: 0 0 0.85rem;
+  padding: 1rem 0.95rem;
+  border: 2px solid color-mix(in srgb, var(--cor-texto-principal) 46%, var(--cor-linha));
+  border-left: 5px solid var(--cor-marca);
+  border-radius: var(--raio);
+  background: color-mix(in srgb, var(--cor-superficie) 86%, var(--cor-fundo));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cor-texto-principal) 18%, transparent);
 }
 
 .pedido-linha:hover {
-  background: color-mix(in srgb, var(--cor-marca) 8%, transparent);
+  border-color: var(--cor-marca);
+  background: color-mix(in srgb, var(--cor-marca) 10%, var(--cor-superficie));
 }
 
 .pedido-linha--encerrado {
-  opacity: 0.62;
+  opacity: 0.78;
+  border-left-color: var(--cor-texto-secundario);
 }
 
 .pedido-linha--encerrado .pedido-linha__nome {
@@ -261,6 +267,12 @@ button.mesa-card {
   .pedido-linha__precos {
     grid-column: 1 / -1;
   }
+}
+
+.pedido-comanda-total {
+  margin: 0.9rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 .comandas-fechar ul {

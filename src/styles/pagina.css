@@ -153,6 +153,26 @@
   font-size: 1.35rem;
 }
 
+.mais-vendidos {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mais-vendidos li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  align-items: baseline;
+}
+
+.mais-vendidos li span:last-child {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
 .grafico {
   width: 100%;
   height: 420px;
@@ -422,6 +442,13 @@
   border: 1px solid var(--cor-linha);
   border-radius: var(--raio);
   background: var(--cor-superficie);
+}
+
+.pedido-card {
+  border: 2px solid color-mix(in srgb, var(--cor-texto-principal) 46%, var(--cor-linha));
+  border-left: 5px solid var(--cor-marca);
+  background: color-mix(in srgb, var(--cor-superficie) 86%, var(--cor-fundo));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cor-texto-principal) 18%, transparent);
 }
 
 .pedido-card__topo,

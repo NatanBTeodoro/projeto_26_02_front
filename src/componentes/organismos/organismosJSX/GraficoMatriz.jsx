@@ -10,7 +10,7 @@ import {
   YAxis,
   ZAxis,
 } from 'recharts'
-import { CORES_CLASSE, formatarMoeda, rotuloClasse } from '../../../utils/formatacao'
+import { CORES_CLASSE, formatarMoeda, formatarPercentual, rotuloClasse } from '../../../utils/formatacao'
 
 function numero(valor) {
   const n = Number(valor)
@@ -24,8 +24,8 @@ function Dica({ active, payload }) {
     <div className="grafico__dica">
       <strong>{ponto.nome}</strong>
       <div>{rotuloClasse(ponto.classe)}</div>
-      <div>Popularidade: {ponto.popularidade}%</div>
-      <div>Margem: {formatarMoeda(ponto.margem)}</div>
+      <div>Popularidade: {formatarPercentual(ponto.popularidade)}</div>
+      <div>Lucro unitário: {formatarMoeda(ponto.margem)}</div>
     </div>
   )
 }
@@ -59,8 +59,8 @@ function GraficoMatriz({ analise }) {
             <YAxis
               type="number"
               dataKey="margem"
-              name="Margem"
-              label={{ value: 'Margem (R$)', angle: -90, position: 'insideLeft' }}
+              name="Lucro unitário"
+              label={{ value: 'Lucro unitário (R$)', angle: -90, position: 'insideLeft' }}
             />
             <ZAxis range={[80, 80]} />
             {limite != null ? <ReferenceLine x={limite} stroke="#888" strokeDasharray="5 5" /> : null}
