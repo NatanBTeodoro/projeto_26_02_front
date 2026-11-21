@@ -19,6 +19,7 @@ export const endpoints = {
   reativarRestaurante: (id) => `/api/restaurantes/${id}/reativar`,
   fecharRestaurante: (id) => `/api/restaurantes/${id}/fechar`,
   comandas: '/api/comandas',
+  fecharComanda: (id) => `/api/comandas/${id}/fechar`,
   modelosAnaliticos: '/api/curva-abc/modelos',
   curvaRestaurantes: '/api/curva-abc/restaurantes',
   curvaProdutos: '/api/curva-abc/produtos',

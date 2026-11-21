@@ -307,11 +307,12 @@ function rotuloDia(chave) {
 function seloPedido(pedido) {
   if (pedido.status === 'CANCELADO') return { texto: 'Cancelado', variante: 'erro' }
   if (pedido.status === 'ESTORNADO') return { texto: 'Estornado', variante: 'incompleto' }
+  if (pedido.status === 'PAGO') return { texto: 'Pago', variante: 'sucesso' }
   if (pedido.alteracoes?.length) return { texto: 'Editado', variante: 'marca' }
   return { texto: 'Ativo', variante: 'sucesso' }
 }
 
-function MenuAcoes({ onEditar, onEstornar, onCancelar }) {
+function MenuAcoes({ onEditar, onEstornar, onCancelar, somenteEstorno = false }) {
   const [aberto, setAberto] = useState(false)
   const caixa = useRef(null)
 
@@ -343,9 +344,9 @@ function MenuAcoes({ onEditar, onEstornar, onCancelar }) {
       </button>
       {aberto ? (
         <div className="menu-acoes__lista" role="menu">
-          <button type="button" role="menuitem" onClick={() => escolher(onEditar)}>Editar</button>
+          {somenteEstorno ? null : <button type="button" role="menuitem" onClick={() => escolher(onEditar)}>Editar</button>}
           <button type="button" role="menuitem" onClick={() => escolher(onEstornar)}>Estornar</button>
-          <button type="button" role="menuitem" onClick={() => escolher(onCancelar)}>Cancelar</button>
+          {somenteEstorno ? null : <button type="button" role="menuitem" onClick={() => escolher(onCancelar)}>Cancelar</button>}
         </div>
       ) : null}
     </div>
@@ -460,7 +461,7 @@ function PedidosUsuario() {
             }}
             opcoes={[
               { valor: '', rotulo: 'Selecione' },
-              ...comandas.map((comanda) => ({ valor: String(comanda.id), rotulo: rotuloComanda(comanda) })),
+              ...comandas.filter((comanda) => comanda.aberta).map((comanda) => ({ valor: String(comanda.id), rotulo: rotuloComanda(comanda) })),
             ]}
           />
         </section>
@@ -517,6 +518,7 @@ function PedidosGestor() {
   const [statusFiltro, setStatusFiltro] = useState('')
   const [usuarioFiltro, setUsuarioFiltro] = useState('')
   const [modal, setModal] = useState(null)
+  const [fechando, setFechando] = useState(null)
   const [erro, setErro] = useState('')
   const [aviso, setAviso] = useState('')
 
@@ -642,15 +644,30 @@ function PedidosGestor() {
     }
   }
 
+  async function confirmarFechamento(evento) {
+    evento.preventDefault()
+    if (!fechando) return
+    setErro('')
+    try {
+      await apiJson(endpoints.fecharComanda(fechando.id), { method: 'POST' })
+      setFechando(null)
+      setAviso(`Comanda #${fechando.numero ?? fechando.id} fechada. Os pedidos ativos passaram a pagos e entram nas análises.`)
+      await carregar()
+    } catch (falha) {
+      setErro(falha.message)
+    }
+  }
+
   const abertas = (todasComandas || []).filter((comanda) => comanda.aberta)
   const ativos = pedidos.filter((pedido) => pedido.status === 'ATIVO')
+  const pagos = pedidos.filter((pedido) => pedido.status === 'PAGO')
   const comandasAbertas = todasComandas
     ? abertas.length
     : new Set(ativos.map((pedido) => pedido.comandaId).filter(Boolean)).size
   const mesasOcupadas = todasComandas
     ? new Set(abertas.map((comanda) => comanda.mesa).filter((valor) => valor != null)).size
     : new Set(ativos.map((pedido) => pedido.mesa).filter((valor) => valor != null)).size
-  const itensVendidos = ativos.reduce(
+  const itensVendidos = pagos.reduce(
     (soma, pedido) => soma + (pedido.itens || []).reduce((parcial, item) => parcial + Number(item.quantidade || 0), 0),
     0,
   )
@@ -698,7 +715,7 @@ function PedidosGestor() {
         <div className="pedidos-topo">
           <CabecalhoPagina
             titulo="Pedidos"
-            descricao="Estorno, cancelamento e edição exigem motivo. O horário fica registrado."
+            descricao="Cada item mostra o valor unitário e o total da linha. Fechar a comanda marca os pedidos ativos como pagos; só os pagos entram nas análises."
           />
           {!bloqueado ? (
             <Botao
@@ -734,7 +751,7 @@ function PedidosGestor() {
               }}
               opcoes={[
                 { valor: '', rotulo: 'Abrir comanda nova' },
-                ...comandas.map((comanda) => ({ valor: String(comanda.id), rotulo: rotuloComanda(comanda) })),
+                ...comandas.filter((comanda) => comanda.aberta).map((comanda) => ({ valor: String(comanda.id), rotulo: rotuloComanda(comanda) })),
               ]}
             />
             <FormField id="mesa" rotulo="Mesa" tipo="number" valor={mesa} onChange={setMesa} obrigatorio />
@@ -758,9 +775,29 @@ function PedidosGestor() {
           </article>
           <article className="pagina__painel metrica">
             <strong>{itensVendidos}</strong>
-            <span>Itens vendidos</span>
+            <span>Itens vendidos (pagos)</span>
           </article>
         </section>
+        {abertas.length ? (
+          <section className="pagina__painel comandas-fechar">
+            <h2>Comandas abertas</h2>
+            <p>Fechar a comanda marca os pedidos ativos como pagos. Pedidos ainda abertos não entram nas análises.</p>
+            <ul>
+              {abertas.map((comanda) => (
+                <li key={comanda.id}>
+                  <span>
+                    #{comanda.numero ?? comanda.id}
+                    {' · Mesa '}
+                    {comanda.mesa ?? '—'}
+                    {' · '}
+                    {comanda.nomeCliente || 'Sem cliente'}
+                  </span>
+                  <Botao texto="Fechar" variante="secundario" desabilitado={bloqueado} onClick={() => setFechando(comanda)} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
         <GradeMesas
           pedidos={pedidos}
           comandas={todasComandas || []}
@@ -799,6 +836,7 @@ function PedidosGestor() {
                 opcoes={[
                   { valor: '', rotulo: 'Todos' },
                   { valor: 'ATIVO', rotulo: 'Ativo' },
+                  { valor: 'PAGO', rotulo: 'Pago' },
                   { valor: 'EDITADO', rotulo: 'Editado' },
                   { valor: 'ESTORNADO', rotulo: 'Estornado' },
                   { valor: 'CANCELADO', rotulo: 'Cancelado' },
@@ -841,8 +879,8 @@ function PedidosGestor() {
                             <strong className="pedido-linha__qtd">{item.quantidade}×</strong>
                             <span className="pedido-linha__nome">{item.produtoNome}</span>
                             <span className="pedido-linha__precos">
-                              <span>{formatarMoeda(item.precoUnitario)}</span>
-                              <strong>{formatarMoeda(Number(item.precoUnitario || 0) * Number(item.quantidade || 0))}</strong>
+                              <span>Unitário {formatarMoeda(item.precoUnitario)}</span>
+                              <strong>Total {formatarMoeda(Number(item.precoUnitario || 0) * Number(item.quantidade || 0))}</strong>
                             </span>
                           </li>
                         ))}
@@ -864,8 +902,9 @@ function PedidosGestor() {
                         </p>
                       ))}
                     </div>
-                    {pedido.status === 'ATIVO' && !bloqueado ? (
+                    {(pedido.status === 'ATIVO' || pedido.status === 'PAGO') && !bloqueado ? (
                       <MenuAcoes
+                        somenteEstorno={pedido.status === 'PAGO'}
                         onEditar={() => iniciarEdicao(pedido)}
                         onEstornar={() => abrirAcao(pedido, 'estorno')}
                         onCancelar={() => abrirAcao(pedido, 'cancelamento')}
@@ -919,6 +958,19 @@ function PedidosGestor() {
                   desabilitado={!motivoEdicao.trim() || itensEdicao.length === 0 || !String(mesaEdicao).trim() || !clienteEdicao.trim()}
                 />
                 <Botao texto="Voltar" variante="fantasma" onClick={() => setEditando(null)} />
+              </div>
+            </form>
+          </div>
+        ) : null}
+        {fechando ? (
+          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-fechar">
+            <button className="modal__velo" type="button" aria-label="Voltar" onClick={() => setFechando(null)} />
+            <form className="modal__caixa" onSubmit={confirmarFechamento}>
+              <h2 id="modal-fechar">Fechar a comanda #{fechando.numero ?? fechando.id}?</h2>
+              <p>Os pedidos ativos passam a pagos e entram nas análises. A comanda deixa de receber lançamentos.</p>
+              <div className="formulario__acoes">
+                <Botao texto="Confirmar" tipo="submit" />
+                <Botao texto="Voltar" variante="fantasma" onClick={() => setFechando(null)} />
               </div>
             </form>
           </div>

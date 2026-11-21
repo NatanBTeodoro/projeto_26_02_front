@@ -34,7 +34,7 @@ function Footer() {
 
   return (
     <footer className="footer">
-      <span>Quadrante · testes dos métodos da API</span>
+      <span>Quadrante</span>
       <span className={`footer__status ${classe}`}>Saúde {status}</span>
     </footer>
   )

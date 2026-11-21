@@ -31,6 +31,7 @@ const ROTULOS_PERFIL = {
 
 const ROTULOS_STATUS = {
   ATIVO: 'Ativo',
+  PAGO: 'Pago',
   INATIVO: 'Inativo',
   FECHADO: 'Fechado',
   ESTORNADO: 'Estornado',
@@ -96,7 +97,7 @@ export function formatarHora(valor) {
 }
 
 export function varianteStatus(status) {
-  if (status === 'ATIVO') return 'sucesso'
+  if (status === 'ATIVO' || status === 'PAGO') return 'sucesso'
   if (status === 'CANCELADO') return 'erro'
   if (status === 'ESTORNADO') return 'incompleto'
   return 'neutro'

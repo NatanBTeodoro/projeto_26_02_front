@@ -262,3 +262,19 @@ button.mesa-card {
     grid-column: 1 / -1;
   }
 }
+
+.comandas-fechar ul {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comandas-fechar li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+}

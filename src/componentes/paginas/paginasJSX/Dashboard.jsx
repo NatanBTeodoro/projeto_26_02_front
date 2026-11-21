@@ -28,6 +28,7 @@ import {
   CORES_CLASSE,
   formatarHora,
   formatarMoeda,
+  formatarNumero,
   formatarPercentual,
   LEGENDAS_CLASSE,
   normalizarBusca,
