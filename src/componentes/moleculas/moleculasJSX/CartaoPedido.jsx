@@ -21,8 +21,10 @@ function CartaoPedido({ pedido }) {
           <li key={item.id || `${item.produtoId}-${item.produtoNome}`}>
             <strong>{item.quantidade}×</strong>
             <span>{item.produtoNome}</span>
-            <span>{formatarMoeda(item.precoUnitario)}</span>
-            <span>{formatarMoeda(Number(item.precoUnitario || 0) * Number(item.quantidade || 0))}</span>
+            <span className="pedido-card__precos">
+              <span>Unitário {formatarMoeda(item.precoUnitario)}</span>
+              <strong>Total {formatarMoeda(Number(item.precoUnitario || 0) * Number(item.quantidade || 0))}</strong>
+            </span>
           </li>
         ))}
       </ul>

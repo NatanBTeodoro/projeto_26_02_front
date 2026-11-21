@@ -26,16 +26,13 @@ import { endpoints } from '../../../services/endpoints'
 import { emVisaoGestor, lerSessao } from '../../../utils/sessao'
 import {
   CORES_CLASSE,
-  formatarHora,
   formatarMoeda,
   formatarNumero,
   formatarPercentual,
   LEGENDAS_CLASSE,
   normalizarBusca,
   rotuloClasse,
-  rotuloStatus,
   totalPedido,
-  varianteStatus,
 } from '../../../utils/formatacao'
 import '../paginasCSS/DashboardAdmin.css'
 
@@ -616,6 +613,7 @@ function DashboardUsuario() {
                 opcoes={[
                   { valor: '', rotulo: 'Todos' },
                   { valor: 'ATIVO', rotulo: 'Ativo' },
+                  { valor: 'PAGO', rotulo: 'Pago' },
                   { valor: 'ESTORNADO', rotulo: 'Estornado' },
                   { valor: 'CANCELADO', rotulo: 'Cancelado' },
                 ]}
@@ -625,35 +623,7 @@ function DashboardUsuario() {
           <p>{porHorario.length} pedido(s)</p>
           {porHorario.length === 0 ? <p>Nenhum pedido encontrado.</p> : (
             <div className="lista-horarios">
-              {porHorario.map((pedido) => (
-                <article key={pedido.id} className="linha-horario">
-                  <time dateTime={pedido.dataHora}>{formatarHora(pedido.dataHora)}</time>
-                  <span className="pilula">
-                    #{pedido.comandaNumero ?? pedido.comandaId ?? '—'} · Mesa {pedido.mesa}
-                  </span>
-                  <div>
-                    <ul className="linha-horario__itens">
-                      <li className="linha-horario__legenda">
-                        <span />
-                        <span>Item</span>
-                        <span>Unitário</span>
-                        <span>Total do item</span>
-                      </li>
-                      {(pedido.itens || []).map((item) => (
-                        <li key={item.id}>
-                          <strong>{item.quantidade}×</strong>
-                          <span>{item.produtoNome}</span>
-                          <span>{formatarMoeda(item.precoUnitario)}</span>
-                          <span>{formatarMoeda(Number(item.precoUnitario || 0) * Number(item.quantidade || 0))}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <p>{pedido.nomeCliente}</p>
-                  </div>
-                  <strong className="linha-horario__pedido">{formatarMoeda(totalPedido(pedido))}</strong>
-                  <Badge texto={rotuloStatus(pedido.status)} variante={varianteStatus(pedido.status)} />
-                </article>
-              ))}
+              {porHorario.map((pedido) => <CartaoPedido key={pedido.id} pedido={pedido} />)}
             </div>
           )}
         </section>

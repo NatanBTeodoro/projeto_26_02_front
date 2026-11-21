@@ -56,7 +56,13 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item',
   const produtosVisiveis = comValores && termo
     ? daCategoria.filter((produto) => normalizarBusca(produto.nome).includes(termo))
     : daCategoria
-  const total = itens.reduce((soma, item) => soma + Number(item.preco || 0) * Number(item.quantidade || 0), 0)
+  function precoItem(item) {
+    if (item.preco != null && item.preco !== '') return Number(item.preco)
+    const produto = produtos.find((atual) => atual.id === item.produtoId)
+    return Number(produto?.precoAtual || 0)
+  }
+
+  const total = itens.reduce((soma, item) => soma + precoItem(item) * Number(item.quantidade || 0), 0)
 
   function acrescentar(produto, qtd) {
     if (!produto || qtd < 1) {
@@ -175,17 +181,19 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item',
             {comValores ? (
               <>
                 <span>{item.nome}</span>
-                <span>{formatarMoeda(item.preco)}</span>
                 <Passo
                   valor={item.quantidade}
                   rotulo={`quantidade de ${item.nome}`}
                   onChange={(valor) => alterarQuantidade(item.produtoId, valor)}
                 />
-                <span>{formatarMoeda(Number(item.preco || 0) * Number(item.quantidade || 0))}</span>
               </>
             ) : (
               <span>{item.quantidade} × {item.nome}</span>
             )}
+            <span className="rascunho__precos">
+              <span>Unitário {formatarMoeda(precoItem(item))}</span>
+              <strong>Total {formatarMoeda(precoItem(item) * Number(item.quantidade || 0))}</strong>
+            </span>
             <Botao
               texto="Remover"
               variante="fantasma"
@@ -194,6 +202,9 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item',
           </li>
         ))}
       </ul>
+      {!comValores && itens.length > 0 ? (
+        <p className="pedido-comanda-total">Total {formatarMoeda(total)}</p>
+      ) : null}
       {comValores ? (
         <div className="pedido__rodape">
           <div>
@@ -719,6 +730,7 @@ function PedidosGestor() {
       produtoId: item.produtoId,
       nome: item.produtoNome,
       quantidade: item.quantidade,
+      preco: item.precoUnitario,
     })))
   }
 
