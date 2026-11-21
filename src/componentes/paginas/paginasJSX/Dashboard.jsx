@@ -36,6 +36,7 @@ import {
   totalPedido,
   varianteStatus,
 } from '../../../utils/formatacao'
+import '../paginasCSS/DashboardAdmin.css'
 
 const CLASSES = ['ESTRELA', 'VACA_LEITEIRA', 'ENIGMA', 'CAO', 'DADO_INCOMPLETO']
 
@@ -95,30 +96,90 @@ function TabelaCurva({ curva, mostrarFaixas }) {
   )
 }
 
+function dataCurta(valor) {
+  if (!valor) return ''
+  const [ano, mes, dia] = String(valor).split('-')
+  return `${dia}/${mes}/${ano}`
+}
+
+function textoVariacao(variacao) {
+  if (!variacao) return '—'
+  if (variacao.texto) return variacao.texto
+  if (variacao.percentual != null) {
+    const numero = Number(variacao.percentual)
+    const sinal = numero > 0 ? '+' : ''
+    return `${sinal}${numero.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
+  }
+  if (variacao.pontos != null) {
+    const numero = Number(variacao.pontos)
+    const sinal = numero > 0 ? '+' : ''
+    return `${sinal}${numero.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} p.p.`
+  }
+  return '—'
+}
+
+function anteriorFormatado(variacao, tipo) {
+  if (!variacao || variacao.anterior == null) return ''
+  if (tipo === 'MOEDA') return formatarMoeda(variacao.anterior)
+  if (tipo === 'PERCENTUAL') return formatarPercentual(variacao.anterior)
+  return formatarNumero(variacao.anterior, tipo === 'INTEIRO' ? 0 : 2)
+}
+
+function valorKpi(kpi) {
+  if (kpi.tipo === 'TEXTO') return kpi.texto || '—'
+  if (kpi.valor == null) return '—'
+  if (kpi.tipo === 'MOEDA') return formatarMoeda(kpi.valor)
+  if (kpi.tipo === 'PERCENTUAL') return formatarPercentual(kpi.valor)
+  return formatarNumero(kpi.valor, 0)
+}
+
+function tomQualidade(valor) {
+  if (valor == null) return 'neutro'
+  const numero = Number(valor)
+  if (numero <= 10) return 'ok'
+  if (numero <= 30) return 'alerta'
+  return 'ruim'
+}
+
+function SeloVariacao({ variacao, tipo }) {
+  const sentido = variacao?.sentido === 'SOBE' ? 'sobe' : variacao?.sentido === 'DESCE' ? 'desce' : 'neutro'
+  const seta = sentido === 'sobe' ? '▲' : sentido === 'desce' ? '▼' : '●'
+  const anterior = anteriorFormatado(variacao, tipo)
+  return (
+    <span
+      className={`kpi__variacao kpi__variacao--${sentido}`}
+      title={anterior ? `Período anterior: ${anterior}` : undefined}
+    >
+      {seta} {textoVariacao(variacao)}
+    </span>
+  )
+}
+
 function DashboardAdmin() {
   const [de, setDe] = useState(inicioPadrao)
   const [ate, setAte] = useState(iso(new Date()))
   const [modelos, setModelos] = useState([])
   const [modelo, setModelo] = useState('CURVA_ABC')
   const [curva, setCurva] = useState(null)
+  const [painel, setPainel] = useState(null)
+  const [verAlertas, setVerAlertas] = useState(false)
   const [mostrarFaixas, setMostrarFaixas] = useState(false)
   const [erro, setErro] = useState('')
 
-  useEffect(() => {
-    apiJson(endpoints.modelosAnaliticos)
-      .then((lista) => {
-        setModelos(lista)
-        if (lista[0]?.codigo) setModelo(lista[0].codigo)
-      })
-      .catch((falha) => setErro(falha.message))
-  }, [])
-
   async function consultar(evento) {
-    evento.preventDefault()
+    if (evento) evento.preventDefault()
     setErro('')
+    setVerAlertas(false)
+    try {
+      const corpo = await apiJson(`${endpoints.painelAdmin}?de=${de}&ate=${ate}`)
+      setPainel(corpo)
+    } catch (falha) {
+      setPainel(null)
+      setErro(falha.message)
+    }
     if (modelo !== 'CURVA_ABC') {
       setCurva(null)
-      setErro('Este modelo ainda não está disponível.')
+      setErro((atual) => atual || 'Este modelo ainda não está disponível.')
       return
     }
     try {
@@ -129,12 +190,22 @@ function DashboardAdmin() {
     }
   }
 
+  useEffect(() => {
+    apiJson(endpoints.modelosAnaliticos)
+      .then((lista) => {
+        setModelos(lista)
+        if (lista[0]?.codigo) setModelo(lista[0].codigo)
+      })
+      .catch((falha) => setErro(falha.message))
+    consultar()
+  }, [])
+
   return (
     <TemplateAutenticado rotaAtual="/dashboard">
       <div className="pagina">
         <CabecalhoPagina
           titulo="Dashboard"
-          descricao="Lucro bruto dos restaurantes ativos no período e a Curva ABC de lucro por restaurante."
+          descricao="Faturamento, lucro e cardápio dos restaurantes ativos, comparados com o período anterior do mesmo tamanho."
         />
         <MensagemErro texto={erro} />
         <Periodo de={de} ate={ate} setDe={setDe} setAte={setAte} onSubmit={consultar}>
@@ -155,6 +226,107 @@ function DashboardAdmin() {
             {' '}Mostrar faixas A, B e C
           </label>
         </Periodo>
+        {painel ? (
+          <>
+            <p className="painel-admin__periodo">
+              {painel.semPeriodoAnterior
+                ? 'Sem período anterior: a plataforma ainda não tinha vendas antes deste intervalo.'
+                : `Comparado com ${dataCurta(painel.deAnterior)} a ${dataCurta(painel.ateAnterior)}.`}
+            </p>
+            <section className="kpis">
+              {painel.kpis.map((kpi) => (
+                <article
+                  key={kpi.codigo}
+                  className={kpi.atencao ? 'kpi kpi--atencao' : 'kpi'}
+                  title={kpi.detalhes?.length ? `Sem venda: ${kpi.detalhes.join(', ')}` : undefined}
+                >
+                  <strong>{valorKpi(kpi)}</strong>
+                  <span>{kpi.rotulo}</span>
+                  <SeloVariacao variacao={kpi.variacao} tipo={kpi.tipo} />
+                  {kpi.complemento ? <small>{kpi.complemento}</small> : null}
+                </article>
+              ))}
+            </section>
+            <section className="pagina__painel">
+              <h2>Alertas</h2>
+              <p className="painel-admin__nota">
+                Restaurantes sem venda recente olham os últimos 7 dias, independente do período escolhido.
+              </p>
+              {painel.alertas.length === 0 ? <p>Nenhum alerta no período ✓</p> : null}
+              <ul className="alertas">
+                {(verAlertas ? painel.alertas : painel.alertas.slice(0, 5)).map((alerta) => (
+                  <li key={alerta.texto}>
+                    <Badge
+                      texto={alerta.severidade === 'CRITICO' ? 'Crítico' : alerta.severidade === 'ATENCAO' ? 'Atenção' : 'Info'}
+                      variante={alerta.severidade === 'CRITICO' ? 'erro' : alerta.severidade === 'ATENCAO' ? 'incompleto' : 'neutro'}
+                    />
+                    <span>{alerta.texto}</span>
+                  </li>
+                ))}
+              </ul>
+              {painel.alertas.length > 5 ? (
+                <Botao
+                  texto={verAlertas ? 'Mostrar menos' : 'Ver todos'}
+                  variante="fantasma"
+                  onClick={() => setVerAlertas((atual) => !atual)}
+                />
+              ) : null}
+            </section>
+            <section className="pagina__painel">
+              <h2>Kasavana & Smith da plataforma</h2>
+              <p className="painel-admin__nota">
+                Cada restaurante é classificado no próprio cardápio. Os percentuais somam só quem tem pelo menos 5 produtos distintos e 10 pedidos.
+                {painel.restaurantesNaConsolidacao === 0
+                  ? ' Nenhum restaurante chegou nessa amostra.'
+                  : ` ${painel.restaurantesNaConsolidacao} restaurante(s) entram na conta.`}
+              </p>
+              <div className="distribuicao">
+                {painel.distribuicao.map((fatia) => (
+                  <div key={fatia.classe} className="distribuicao__linha">
+                    <span>{rotuloClasse(fatia.classe)}</span>
+                    <div className="distribuicao__trilho" title="Percentual dos produtos">
+                      <i style={{ width: `${Number(fatia.percentualProdutos) || 0}%`, background: CORES_CLASSE[fatia.classe] }} />
+                    </div>
+                    <span>{formatarPercentual(fatia.percentualProdutos)} produtos</span>
+                    <div className="distribuicao__trilho" title="Percentual do lucro">
+                      <i style={{ width: `${Number(fatia.percentualLucro) || 0}%`, background: CORES_CLASSE[fatia.classe] }} />
+                    </div>
+                    <span>{fatia.percentualLucro == null ? '— do lucro' : `${formatarPercentual(fatia.percentualLucro)} do lucro`}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+            <section className="pagina__painel">
+              <h2>Saúde do cardápio</h2>
+              <p className="painel-admin__nota">Ordenado pela parcela de Estrelas. Verde até 10% sem custo, amarelo até 30%, vermelho acima disso.</p>
+              <div className="saude-lista">
+                {painel.restaurantes.map((restaurante) => (
+                  <article key={restaurante.id} className="saude">
+                    <header>
+                      <strong>{restaurante.nome}</strong>
+                      {restaurante.amostraPequena ? <Badge texto="Amostra pequena" variante="incompleto" /> : null}
+                    </header>
+                    <div className="barra-empilhada" aria-label={`Classes de ${restaurante.nome}`}>
+                      {restaurante.classes.filter((parte) => Number(parte.percentual) > 0).map((parte) => (
+                        <i
+                          key={parte.classe}
+                          title={`${rotuloClasse(parte.classe)}: ${formatarPercentual(parte.percentual)}`}
+                          style={{ width: `${Number(parte.percentual)}%`, background: CORES_CLASSE[parte.classe] }}
+                        />
+                      ))}
+                    </div>
+                    <p>{formatarPercentual(restaurante.percentualEstrelas)} estrelas · {restaurante.pedidos} pedidos · {restaurante.produtosDistintos} produtos</p>
+                    <p>
+                      Vendidos sem custo <strong className={`qualidade qualidade--${tomQualidade(restaurante.vendidosSemCusto)}`}>{formatarPercentual(restaurante.vendidosSemCusto)}</strong>
+                      {' · '}
+                      Cardápio sem custo <strong className={`qualidade qualidade--${tomQualidade(restaurante.cardapioSemCusto)}`}>{formatarPercentual(restaurante.cardapioSemCusto)}</strong>
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          </>
+        ) : null}
         {curva ? (
           <>
             <section className="pagina__painel cartao">

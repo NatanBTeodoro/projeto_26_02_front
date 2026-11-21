@@ -1,0 +1,133 @@
+.painel-admin__periodo,
+.painel-admin__nota {
+  margin: 0;
+  color: var(--cor-texto-secundario);
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--cor-linha);
+  border-radius: var(--raio);
+  background: var(--cor-superficie);
+}
+
+.kpi--atencao {
+  border-color: var(--cor-aviso);
+  background: color-mix(in srgb, var(--cor-aviso-fundo) 55%, var(--cor-superficie));
+}
+
+.kpi strong {
+  font-size: 1.55rem;
+  line-height: 1.1;
+}
+
+.kpi span,
+.kpi small {
+  color: var(--cor-texto-secundario);
+}
+
+.kpi__variacao {
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.kpi__variacao--sobe { color: var(--cor-sucesso); }
+.kpi__variacao--desce { color: var(--cor-erro); }
+.kpi__variacao--neutro { color: var(--cor-texto-secundario); }
+
+.alertas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.alertas li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.7rem;
+  align-items: baseline;
+}
+
+.distribuicao {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.distribuicao__linha {
+  display: grid;
+  grid-template-columns: minmax(7rem, 9rem) minmax(0, 1fr) auto;
+  gap: 0.35rem 0.7rem;
+  align-items: center;
+}
+
+.distribuicao__trilho {
+  height: 0.7rem;
+  border-radius: 999px;
+  background: var(--cor-creme-escuro);
+  overflow: hidden;
+}
+
+.distribuicao__trilho i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.saude-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.saude header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.7rem;
+  align-items: center;
+}
+
+.saude p {
+  margin: 0.25rem 0 0;
+}
+
+.barra-empilhada {
+  display: flex;
+  height: 0.85rem;
+  margin-top: 0.45rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--cor-creme-escuro);
+}
+
+.barra-empilhada i {
+  display: block;
+  height: 100%;
+}
+
+.qualidade--ok { color: var(--cor-sucesso); }
+.qualidade--alerta { color: var(--cor-aviso); }
+.qualidade--ruim { color: var(--cor-erro); }
+.qualidade--neutro { color: var(--cor-texto-secundario); }
+
+@media (max-width: 720px) {
+  .distribuicao__linha {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .distribuicao__linha > span:first-child {
+    grid-column: 1 / -1;
+  }
+}

@@ -4,7 +4,7 @@
 // NECESSIDADE: valida e-mail e senha antes de chamar a API.
 //
 // PROPS:
-//   onSubmit      (function) — recebe { email, senha }
+//   onSubmit      (function) — recebe { email, senha, lembrar }
 //   onRecuperar   (function)
 //   erroExterno   (string)
 //   enviando      (boolean)
@@ -19,11 +19,13 @@ import Botao from '../../atomos/atomosJSX/Botao'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import Titulo from '../../atomos/atomosJSX/Titulo'
 import Texto from '../../atomos/atomosJSX/Texto'
+import { lembrarLogin } from '../../../utils/sessao'
 import '../organismosCSS/FormLogin.css'
 
 function FormLogin({ onSubmit, erroExterno = '', enviando = false }) {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
+  const [lembrar, setLembrar] = useState(lembrarLogin)
   const [erros, setErros] = useState({})
 
   function validar() {
@@ -37,15 +39,24 @@ function FormLogin({ onSubmit, erroExterno = '', enviando = false }) {
   function aoEnviar(evento) {
     evento.preventDefault()
     if (!validar()) return
-    onSubmit({ email: email.trim().toLowerCase(), senha })
+    onSubmit({ email: email.trim().toLowerCase(), senha, lembrar })
   }
 
   return (
     <form className="form-login" onSubmit={aoEnviar}>
       <Titulo texto="Entrar" nivel={2} />
-      <Texto>A sessão fica no cookie do servidor.</Texto>
+      <Texto>Marque para continuar conectado depois de fechar o navegador. Sem a marca, fechar a página encerra o acesso.</Texto>
       <FormField id="email" rotulo="E-mail" tipo="email" valor={email} onChange={setEmail} erro={erros.email} obrigatorio />
       <FormFieldSenha id="senha" rotulo="Senha" valor={senha} onChange={setSenha} erro={erros.senha} obrigatorio />
+      <label className="form-login__lembrar">
+        <input
+          id="lembrar-login"
+          type="checkbox"
+          checked={lembrar}
+          onChange={(evento) => setLembrar(evento.target.checked)}
+        />
+        Lembrar login neste computador
+      </label>
       <MensagemErro texto={erroExterno} />
       <div className="formulario__acoes">
         <Botao texto={enviando ? 'Entrando...' : 'Entrar'} tipo="submit" desabilitado={enviando} />

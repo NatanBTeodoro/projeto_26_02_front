@@ -5,7 +5,7 @@ import Botao from '../../atomos/atomosJSX/Botao'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
-import { gravarVisao, limparVisao } from '../../../utils/sessao'
+import { gravarVisao, lerVisao, limparVisao } from '../../../utils/sessao'
 import { rotuloStatus } from '../../../utils/formatacao'
 
 function Restaurantes() {
@@ -13,7 +13,7 @@ function Restaurantes() {
   const [erro, setErro] = useState('')
 
   useEffect(() => {
-    if (localStorage.getItem('restauranteId')) {
+    if (lerVisao().restauranteId) {
       limparVisao()
       window.location.reload()
       return

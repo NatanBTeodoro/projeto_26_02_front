@@ -21,7 +21,7 @@ function Login() {
         body: JSON.stringify(dados),
       })
       limparSessao()
-      gravarSessao(usuario)
+      gravarSessao(usuario, Boolean(dados.lembrar))
       window.location.href = destinoInicial(usuario.perfil)
     } catch (falha) {
       setErroApi(falha.message || 'Erro de conexão. Tente novamente.')

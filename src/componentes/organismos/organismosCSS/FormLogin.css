@@ -8,3 +8,18 @@
   box-shadow: var(--sombra-media);
   padding: 1.5rem 1.4rem 1.4rem;
 }
+
+.form-login__lembrar {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--cor-texto-principal);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.form-login__lembrar input {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--cor-marca);
+}

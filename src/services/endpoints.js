@@ -36,6 +36,7 @@ export const endpoints = {
   analise: '/api/analise',
   analiseCsv: '/api/analise/exportar',
   dashboard: '/api/dashboard',
+  painelAdmin: '/api/painel-admin',
   reclamacoes: '/api/reclamacoes',
   reclamacao: (id) => `/api/reclamacoes/${id}`,
   anexoReclamacao: (id) => `/api/reclamacoes/${id}/anexo`,

@@ -9,59 +9,91 @@ const CHAVES = [
   'restauranteStatus',
 ]
 
-export function gravarSessao(usuario) {
-  if (!usuario) return
-  localStorage.setItem('usuarioId', usuario.id != null ? String(usuario.id) : '')
-  localStorage.setItem('usuarioNome', usuario.nome || '')
-  localStorage.setItem('usuarioEmail', usuario.email || '')
-  localStorage.setItem('perfil', usuario.perfil || '')
-  localStorage.setItem('token', usuario.token || '')
+const CHAVE_LEMBRAR = 'lembrarLogin'
+
+function deposito(lembrar) {
+  if (lembrar === true) return localStorage
+  if (lembrar === false) return sessionStorage
+  if (sessionStorage.getItem('token')) return sessionStorage
+  return localStorage
 }
 
-export function lerSessao() {
+function limparEm(storage) {
+  CHAVES.forEach((chave) => storage.removeItem(chave))
+}
+
+function lerDe(storage) {
   return {
-    usuarioId: localStorage.getItem('usuarioId') || '',
-    usuarioNome: localStorage.getItem('usuarioNome') || '',
-    usuarioEmail: localStorage.getItem('usuarioEmail') || '',
-    perfil: localStorage.getItem('perfil') || '',
-    token: localStorage.getItem('token') || '',
+    usuarioId: storage.getItem('usuarioId') || '',
+    usuarioNome: storage.getItem('usuarioNome') || '',
+    usuarioEmail: storage.getItem('usuarioEmail') || '',
+    perfil: storage.getItem('perfil') || '',
+    token: storage.getItem('token') || '',
   }
 }
 
+export function lembrarLogin() {
+  return localStorage.getItem(CHAVE_LEMBRAR) === '1'
+}
+
+export function gravarSessao(usuario, lembrar) {
+  if (!usuario) return
+  const destino = deposito(lembrar)
+  limparEm(destino === localStorage ? sessionStorage : localStorage)
+  destino.setItem('usuarioId', usuario.id != null ? String(usuario.id) : '')
+  destino.setItem('usuarioNome', usuario.nome || '')
+  destino.setItem('usuarioEmail', usuario.email || '')
+  destino.setItem('perfil', usuario.perfil || '')
+  destino.setItem('token', usuario.token || '')
+  if (lembrar === true || lembrar === false) {
+    localStorage.setItem(CHAVE_LEMBRAR, lembrar ? '1' : '0')
+  }
+}
+
+export function lerSessao() {
+  if (sessionStorage.getItem('token')) return lerDe(sessionStorage)
+  return lerDe(localStorage)
+}
+
 export function autenticado() {
-  return Boolean(localStorage.getItem('token'))
+  return Boolean(lerSessao().token)
 }
 
 export function limparSessao() {
-  CHAVES.forEach((chave) => localStorage.removeItem(chave))
+  limparEm(localStorage)
+  limparEm(sessionStorage)
 }
 
 export function gravarVisao(restaurante) {
-  localStorage.setItem('restauranteId', String(restaurante.id))
-  localStorage.setItem('restauranteNome', restaurante.nome || '')
-  localStorage.setItem('restauranteStatus', restaurante.status || '')
+  const destino = deposito()
+  destino.setItem('restauranteId', String(restaurante.id))
+  destino.setItem('restauranteNome', restaurante.nome || '')
+  destino.setItem('restauranteStatus', restaurante.status || '')
 }
 
 export function lerVisao() {
+  const origem = deposito()
   return {
-    restauranteId: localStorage.getItem('restauranteId') || '',
-    restauranteNome: localStorage.getItem('restauranteNome') || '',
-    restauranteStatus: localStorage.getItem('restauranteStatus') || '',
+    restauranteId: origem.getItem('restauranteId') || '',
+    restauranteNome: origem.getItem('restauranteNome') || '',
+    restauranteStatus: origem.getItem('restauranteStatus') || '',
   }
 }
 
 export function limparVisao() {
-  localStorage.removeItem('restauranteId')
-  localStorage.removeItem('restauranteNome')
-  localStorage.removeItem('restauranteStatus')
+  ;[localStorage, sessionStorage].forEach((storage) => {
+    storage.removeItem('restauranteId')
+    storage.removeItem('restauranteNome')
+    storage.removeItem('restauranteStatus')
+  })
 }
 
 export function emVisaoGestor() {
-  return lerSessao().perfil === 'ADMINISTRADOR' && Boolean(localStorage.getItem('restauranteId'))
+  return lerSessao().perfil === 'ADMINISTRADOR' && Boolean(lerVisao().restauranteId)
 }
 
 export function visaoBloqueada() {
-  return emVisaoGestor() && localStorage.getItem('restauranteStatus') !== 'ATIVO'
+  return emVisaoGestor() && lerVisao().restauranteStatus !== 'ATIVO'
 }
 
 export function destinoInicial(perfil) {
