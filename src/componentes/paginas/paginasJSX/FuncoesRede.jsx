@@ -10,8 +10,12 @@ import Titulo from '../../atomos/atomosJSX/Titulo'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { rotuloFuncao, agruparFuncoes } from '../../../utils/formatacao'
+import { useFuncoes } from '../../../utils/funcoes'
 
 function FuncoesRede() {
+  const { tem, pronto } = useFuncoes()
+  const gerir = pronto && tem('CATALOGO_FUNCOES_GERIR')
+  const verAuditoria = pronto && tem('AUDITORIA_VER')
   const [catalogo, setCatalogo] = useState([])
   const [minhas, setMinhas] = useState([])
   const [rotulo, setRotulo] = useState('')
@@ -29,21 +33,27 @@ function FuncoesRede() {
   const [auditoriaAberta, setAuditoriaAberta] = useState(false)
 
   async function carregar() {
-    const [itens, funcoes, registros, listaCargos] = await Promise.all([
+    if (verAuditoria) {
+      apiJson(endpoints.auditoriaPermissoes).then(setAuditoria).catch((falha) => setErro(falha.message))
+    } else {
+      setAuditoria([])
+      setAuditoriaAberta(false)
+    }
+    if (!gerir) return
+    const [itens, funcoes, listaCargos] = await Promise.all([
       apiJson(endpoints.funcoesRede),
       apiJson(endpoints.funcoesMinhas),
-      apiJson(endpoints.auditoriaPermissoes),
       apiJson(endpoints.cargosRede),
     ])
     setCatalogo(itens)
     setMinhas(funcoes.filter((authority) => !authority.startsWith('PLATAFORMA_')))
-    setAuditoria(registros)
     setCargos(listaCargos)
   }
 
   useEffect(() => {
+    if (!pronto) return
     carregar().catch((falha) => setErro(falha.message))
-  }, [])
+  }, [pronto, gerir, verAuditoria])
 
   function alternar(authority) {
     setMarcadas((lista) => (lista.includes(authority) ? lista.filter((item) => item !== authority) : [...lista, authority]))
@@ -139,7 +149,7 @@ function FuncoesRede() {
           descricao="O catálogo só oferece funções que a sua conta já possui."
         />
         <MensagemErro texto={erro} />
-        {criandoCargo ? (
+        {gerir && criandoCargo ? (
           <section className="pagina__painel">
             <Titulo nivel={2} texto="Criar cargo" />
             <form className="formulario" onSubmit={criar}>
@@ -159,7 +169,7 @@ function FuncoesRede() {
             </form>
           </section>
         ) : (
-          <Botao texto="Criar cargo" onClick={() => { setEditandoId(null); setCriandoCargo(true) }} />
+          gerir ? <Botao texto="Criar cargo" onClick={() => { setEditandoId(null); setCriandoCargo(true) }} /> : null
         )}
         <Titulo nivel={2} texto="Cargos da rede" />
         <Tabela
@@ -179,12 +189,14 @@ function FuncoesRede() {
                     variante="secundario"
                     onClick={() => setCargoFuncoesId((atual) => (atual === cargo.id ? null : cargo.id))}
                   />
-                  <Botao
-                    texto={editandoId === cargo.id ? 'Editando' : 'Editar'}
-                    variante="secundario"
-                    onClick={() => (editandoId === cargo.id ? setEditandoId(null) : abrirEdicao(cargo))}
-                  />
-                  {cargo.ativo ? <Botao texto="Desativar" variante="fantasma" onClick={() => desativarCargo(cargo)} /> : null}
+                  {gerir ? (
+                    <Botao
+                      texto={editandoId === cargo.id ? 'Editando' : 'Editar'}
+                      variante="secundario"
+                      onClick={() => (editandoId === cargo.id ? setEditandoId(null) : abrirEdicao(cargo))}
+                    />
+                  ) : null}
+                  {gerir && cargo.ativo ? <Botao texto="Desativar" variante="fantasma" onClick={() => desativarCargo(cargo)} /> : null}
                 </>
               ),
             },
@@ -233,7 +245,7 @@ function FuncoesRede() {
             { chave: 'rotulo', rotulo: 'Rótulo' },
             { chave: 'authority', rotulo: 'Função', celula: (item) => rotuloFuncao(item.authority) },
             { chave: 'descricao', rotulo: 'Descrição', papel: 'texto' },
-            { chave: 'acao', rotulo: '', papel: 'acoes', celula: (item) => <Botao texto="Desativar" variante="fantasma" onClick={() => desativar(item)} /> },
+            { chave: 'acao', rotulo: '', papel: 'acoes', celula: (item) => (gerir ? <Botao texto="Desativar" variante="fantasma" onClick={() => desativar(item)} /> : null) },
           ]}
         />
         {auditoriaAberta ? (
@@ -253,9 +265,9 @@ function FuncoesRede() {
             />
             <Botao texto="Ocultar auditoria" variante="fantasma" onClick={() => setAuditoriaAberta(false)} />
           </>
-        ) : (
+        ) : verAuditoria ? (
           <Botao texto="Auditoria de permissão" onClick={() => setAuditoriaAberta(true)} />
-        )}
+        ) : null}
       </div>
     </TemplateAutenticado>
   )

@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { RotaPerfil } from './rotas/RotasProtegidas'
 import { autenticado, destinoInicial, lerSessao } from './utils/sessao'
+import { FuncoesProvider } from './utils/funcoes'
 import Login from './componentes/paginas/paginasJSX/Login'
 import Dashboard from './componentes/paginas/paginasJSX/Dashboard'
 import Produtos from './componentes/paginas/paginasJSX/Produtos'
@@ -27,6 +28,7 @@ function Inicio() {
 function App() {
   return (
     <BrowserRouter>
+      <FuncoesProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Inicio />} />
@@ -45,6 +47,7 @@ function App() {
         <Route path="/usuarios" element={<Navigate to="/cadastros" replace />} />
         <Route path="*" element={<Inicio />} />
       </Routes>
+      </FuncoesProvider>
     </BrowserRouter>
   )
 }

@@ -10,6 +10,7 @@ import MensagemSucesso from '../../atomos/atomosJSX/MensagemSucesso'
 import { apiBlob, apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { formatarDataHora, rotuloStatus } from '../../../utils/formatacao'
+import { useFuncoes } from '../../../utils/funcoes'
 
 const STATUS = [
   { valor: '', rotulo: 'Todos' },
@@ -28,6 +29,8 @@ function consulta(status, de, ate) {
 }
 
 function Reclamacoes() {
+  const { tem, pronto } = useFuncoes()
+  const podeResponder = pronto && tem('RECLAMACAO_RESPONDER')
   const [status, setStatus] = useState('')
   const [de, setDe] = useState('')
   const [ate, setAte] = useState('')
@@ -141,6 +144,8 @@ function Reclamacoes() {
               {item.anexoNome ? (
                 <Botao texto={item.anexoNome} variante="fantasma" onClick={() => baixar(item)} />
               ) : null}
+              {podeResponder ? (
+                <>
               <FormFieldSelect
                 id={`status-${item.id}`}
                 rotulo="Status"
@@ -155,6 +160,8 @@ function Reclamacoes() {
                 onChange={(valor) => alterar(item.id, 'resposta', valor)}
               />
               <Botao texto="Salvar" onClick={() => salvar(item)} />
+                </>
+              ) : null}
             </article>
           )
         })}

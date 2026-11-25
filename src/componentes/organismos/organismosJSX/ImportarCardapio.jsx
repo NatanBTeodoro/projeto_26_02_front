@@ -7,6 +7,7 @@ import MensagemSucesso from '../../atomos/atomosJSX/MensagemSucesso'
 import { apiArquivo, apiFormulario } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { formatarMoeda } from '../../../utils/formatacao'
+import { useFuncoes } from '../../../utils/funcoes'
 
 function textoSituacao(linha) {
   if (linha.situacao === 'ERRO') return 'Erro'
@@ -27,6 +28,8 @@ function mensagemImportados(quantidade) {
 }
 
 function ImportarCardapio({ aoConcluir }) {
+  const { tem, pronto } = useFuncoes()
+  const verCusto = pronto && tem('CUSTO_LER')
   const arquivoInput = useRef(null)
   const [arquivo, setArquivo] = useState(null)
   const [previa, setPrevia] = useState(null)
@@ -121,7 +124,7 @@ function ImportarCardapio({ aoConcluir }) {
   return (
     <section className="pagina__painel">
       <Titulo nivel={2} texto="Importar cardápio" />
-      <p>Colunas fixas: categoria, nome, preco e custo. A segunda linha do modelo é um exemplo.</p>
+      <p>Colunas fixas: categoria, nome e preco{verCusto ? ' e custo' : ''}. A segunda linha do modelo é um exemplo.</p>
       <MensagemErro texto={erro} />
       <MensagemSucesso texto={sucesso} />
       {aviso ? <p>{aviso}</p> : null}
@@ -144,7 +147,7 @@ function ImportarCardapio({ aoConcluir }) {
           {resumo.categoriasNovas > 0 ? (
             <p>Categorias que ainda não existem serão criadas se você confirmar.</p>
           ) : null}
-          {resumo.semCusto > 0 ? (
+          {verCusto && resumo.semCusto > 0 ? (
             <p>{resumo.semCusto} item(ns) ficarão sem custo e fora da classificação da matriz.</p>
           ) : null}
           <div className="formulario">
@@ -175,7 +178,7 @@ function ImportarCardapio({ aoConcluir }) {
               { chave: 'nome', rotulo: 'Nome', largura: '16%' },
               { chave: 'situacao', rotulo: 'Situação', largura: '14%', celula: (linha) => textoSituacao(linha) },
               { chave: 'preco', rotulo: 'Preço', papel: 'numero', largura: '12%', celula: (linha) => (linha.situacao === 'ATUALIZAR' ? diferenca(linha.precoAnterior, linha.preco) : formatarMoeda(linha.preco)) },
-              { chave: 'custo', rotulo: 'Custo', papel: 'numero', largura: '12%', celula: (linha) => (linha.situacao === 'ATUALIZAR' ? diferenca(linha.custoAnterior, linha.custo) : formatarMoeda(linha.custo)) },
+              ...(verCusto ? [{ chave: 'custo', rotulo: 'Custo', papel: 'numero', largura: '12%', celula: (linha) => (linha.situacao === 'ATUALIZAR' ? diferenca(linha.custoAnterior, linha.custo) : formatarMoeda(linha.custo)) }] : []),
               { chave: 'mensagens', rotulo: 'Aviso', papel: 'texto', largura: '24%', celula: (linha) => linha.mensagens.join(' ') },
             ]}
           />

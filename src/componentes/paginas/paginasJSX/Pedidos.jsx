@@ -13,6 +13,7 @@ import CartaoPedido from '../../moleculas/moleculasJSX/CartaoPedido'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { emVisaoGestor, lerSessao, visaoBloqueada } from '../../../utils/sessao'
+import { useFuncoes } from '../../../utils/funcoes'
 import { formatarDataHora, formatarHora, formatarMoeda, normalizarBusca, rotuloStatus, totalPedido, varianteStatus } from '../../../utils/formatacao'
 import '../paginasCSS/PedidosGestor.css'
 
@@ -336,7 +337,7 @@ function seloPedido(pedido) {
   return { texto: 'Ativo', variante: 'sucesso' }
 }
 
-function MenuAcoes({ onEditar, onEstornar, onCancelar, somenteEstorno = false }) {
+function MenuAcoes({ onEditar, onEstornar, onCancelar, somenteEstorno = false, podeEditar = false, podeEstornar = false, podeCancelar = false }) {
   const [aberto, setAberto] = useState(false)
   const caixa = useRef(null)
 
@@ -354,6 +355,10 @@ function MenuAcoes({ onEditar, onEstornar, onCancelar, somenteEstorno = false })
     acao()
   }
 
+  const editar = !somenteEstorno && podeEditar
+  const cancelar = !somenteEstorno && podeCancelar
+  if (!editar && !podeEstornar && !cancelar) return null
+
   return (
     <div className="menu-acoes" ref={caixa}>
       <button
@@ -368,9 +373,9 @@ function MenuAcoes({ onEditar, onEstornar, onCancelar, somenteEstorno = false })
       </button>
       {aberto ? (
         <div className="menu-acoes__lista" role="menu">
-          {somenteEstorno ? null : <button type="button" role="menuitem" onClick={() => escolher(onEditar)}>Editar</button>}
-          <button type="button" role="menuitem" onClick={() => escolher(onEstornar)}>Estornar</button>
-          {somenteEstorno ? null : <button type="button" role="menuitem" onClick={() => escolher(onCancelar)}>Cancelar</button>}
+          {editar ? <button type="button" role="menuitem" onClick={() => escolher(onEditar)}>Editar</button> : null}
+          {podeEstornar ? <button type="button" role="menuitem" onClick={() => escolher(onEstornar)}>Estornar</button> : null}
+          {cancelar ? <button type="button" role="menuitem" onClick={() => escolher(onCancelar)}>Cancelar</button> : null}
         </div>
       ) : null}
     </div>
@@ -378,6 +383,9 @@ function MenuAcoes({ onEditar, onEstornar, onCancelar, somenteEstorno = false })
 }
 
 function PedidosUsuario() {
+  const { tem, pronto } = useFuncoes()
+  const podeAbrir = pronto && tem('COMANDA_ABRIR')
+  const podeLancar = pronto && tem('PEDIDO_LANCAR')
   const [comandas, setComandas] = useState([])
   const [pedidos, setPedidos] = useState([])
   const [categorias, setCategorias] = useState([])
@@ -392,10 +400,10 @@ function PedidosUsuario() {
 
   async function carregar() {
     const [listaComandas, listaPedidos, listaCategorias, listaProdutos] = await Promise.all([
-      apiJson(endpoints.comandas),
-      apiJson(endpoints.pedidos),
-      apiJson(endpoints.categorias),
-      apiJson(endpoints.produtos),
+      tem('COMANDA_LER') ? apiJson(endpoints.comandas) : Promise.resolve([]),
+      tem('PEDIDO_LER') ? apiJson(endpoints.pedidos) : Promise.resolve([]),
+      podeLancar ? apiJson(endpoints.categorias) : Promise.resolve([]),
+      podeLancar ? apiJson(endpoints.produtos) : Promise.resolve([]),
     ])
     setComandas(listaComandas)
     setPedidos(listaPedidos)
@@ -412,8 +420,9 @@ function PedidosUsuario() {
   }
 
   useEffect(() => {
+    if (!pronto) return
     carregar().catch((falha) => setErro(falha.message))
-  }, [])
+  }, [pronto])
 
   async function abrirComanda() {
     setErro('')
@@ -471,9 +480,11 @@ function PedidosUsuario() {
         <MensagemErro texto={erro} />
         {aviso ? <p>{aviso}</p> : null}
         <section className="pagina__painel">
-          <div className="formulario__acoes">
-            <Botao texto="Abrir comanda" onClick={abrirComanda} />
-          </div>
+          {podeAbrir ? (
+            <div className="formulario__acoes">
+              <Botao texto="Abrir comanda" onClick={abrirComanda} />
+            </div>
+          ) : null}
           <FormFieldSelect
             id="comanda"
             rotulo="Comanda"
@@ -491,6 +502,7 @@ function PedidosUsuario() {
             ]}
           />
         </section>
+        {podeLancar ? (
         <form className="formulario pagina__painel" onSubmit={salvar}>
           {comandaPronta && !outroNome ? (
             <div className="pedido__resumo-comanda">
@@ -508,6 +520,7 @@ function PedidosUsuario() {
           )}
           <SeletorItens categorias={categorias} produtos={produtos} itens={itens} setItens={setItens} comValores />
         </form>
+        ) : null}
         <section className="pagina__painel">
           <Titulo nivel={2} texto="Pedidos desta comanda" />
           {daComanda.length === 0 ? <p>Nenhum pedido ativo nesta comanda.</p> : null}
@@ -539,7 +552,7 @@ function agruparPorDia(lista) {
   return grupos
 }
 
-function LinhasPedido({ pedidos, bloqueado, onEditar, onEstornar, onCancelar }) {
+function LinhasPedido({ pedidos, bloqueado, onEditar, onEstornar, onCancelar, podeEditar, podeEstornar, podeEstornarPago, podeCancelar }) {
   return agruparPorDia(pedidos).map((grupo) => (
     <div key={grupo.chave || 'sem-data'}>
       <h3 className="pedido-dia">{rotuloDia(grupo.chave)}</h3>
@@ -590,6 +603,9 @@ function LinhasPedido({ pedidos, bloqueado, onEditar, onEstornar, onCancelar }) 
             {(pedido.status === 'ATIVO' || pedido.status === 'PAGO') && !bloqueado ? (
               <MenuAcoes
                 somenteEstorno={pedido.status === 'PAGO'}
+                podeEditar={podeEditar}
+                podeEstornar={pedido.status === 'PAGO' ? podeEstornarPago : podeEstornar}
+                podeCancelar={podeCancelar}
                 onEditar={() => onEditar(pedido)}
                 onEstornar={() => onEstornar(pedido)}
                 onCancelar={() => onCancelar(pedido)}
@@ -604,6 +620,14 @@ function LinhasPedido({ pedidos, bloqueado, onEditar, onEstornar, onCancelar }) 
 
 function PedidosGestor() {
   const bloqueado = visaoBloqueada()
+  const { tem, pronto } = useFuncoes()
+  const podeLancar = pronto && tem('PEDIDO_LANCAR')
+  const podeAbrir = pronto && tem('COMANDA_ABRIR')
+  const podeFechar = pronto && tem('COMANDA_FECHAR')
+  const podeEditar = pronto && tem('PEDIDO_EDITAR')
+  const podeCancelar = pronto && tem('PEDIDO_CANCELAR')
+  const podeEstornar = pronto && tem('PEDIDO_ESTORNAR')
+  const podeEstornarPago = pronto && tem('PEDIDO_ESTORNAR_PAGO')
   const [pedidos, setPedidos] = useState([])
   const [usuarios, setUsuarios] = useState([])
   const [categorias, setCategorias] = useState([])
@@ -632,11 +656,13 @@ function PedidosGestor() {
   const [aviso, setAviso] = useState('')
 
   async function carregar() {
+    const cardapio = tem('PEDIDO_LANCAR')
+    const equipe = tem('PEDIDO_LANCAR') || tem('COMANDA_FECHAR') || tem('COMANDA_LER')
     const [listaPedidos, listaUsuarios, listaCategorias, listaProdutos] = await Promise.all([
-      apiJson(endpoints.pedidos),
-      apiJson(endpoints.usuarios),
-      apiJson(endpoints.categorias),
-      apiJson(endpoints.produtos),
+      tem('PEDIDO_LER') ? apiJson(endpoints.pedidos) : Promise.resolve([]),
+      equipe ? apiJson(endpoints.usuarios).catch(() => []) : Promise.resolve([]),
+      cardapio ? apiJson(endpoints.categorias).catch(() => []) : Promise.resolve([]),
+      cardapio ? apiJson(endpoints.produtos).catch(() => []) : Promise.resolve([]),
     ])
     setPedidos(listaPedidos)
     const operadores = listaUsuarios.filter((usuario) => usuario.perfil === 'USUARIO')
@@ -651,8 +677,9 @@ function PedidosGestor() {
   }
 
   useEffect(() => {
+    if (!pronto) return
     carregar().catch((falha) => setErro(falha.message))
-  }, [])
+  }, [pronto])
 
   useEffect(() => {
     if (!usuarioId) {
@@ -822,7 +849,7 @@ function PedidosGestor() {
             titulo="Pedidos"
             descricao="Cada item mostra o valor unitário e o total da linha. Fechar a comanda marca os pedidos ativos como pagos; só os pagos entram nas análises."
           />
-          {!bloqueado ? (
+          {!bloqueado && podeLancar ? (
             <Botao
               texto={mostrarFormulario ? 'Fechar lançamento' : 'Registrar pedido como usuário'}
               onClick={() => setMostrarFormulario((atual) => !atual)}
@@ -832,7 +859,7 @@ function PedidosGestor() {
         <MensagemErro texto={erro} />
         {aviso ? <p>{aviso}</p> : null}
         {bloqueado ? <p>Restaurante fechado ou inativo: os pedidos podem ser consultados, mas não alterados.</p> : null}
-        {mostrarFormulario && !bloqueado ? (
+        {mostrarFormulario && !bloqueado && podeLancar ? (
           <form className="formulario pagina__painel" onSubmit={salvar}>
             <FormFieldSelect
               id="usuario"
@@ -855,14 +882,14 @@ function PedidosGestor() {
                 setNomeCliente(escolhida?.nomeCliente || '')
               }}
               opcoes={[
-                { valor: '', rotulo: 'Abrir comanda nova' },
+                { valor: '', rotulo: podeAbrir ? 'Abrir comanda nova' : 'Selecione' },
                 ...comandas.filter((comanda) => comanda.aberta).map((comanda) => ({ valor: String(comanda.id), rotulo: rotuloComanda(comanda) })),
               ]}
             />
             <FormField id="mesa" rotulo="Mesa" tipo="number" valor={mesa} onChange={setMesa} obrigatorio />
             <FormField id="cliente" rotulo="Nome do cliente" valor={nomeCliente} onChange={setNomeCliente} obrigatorio />
             <SeletorItens categorias={categorias} produtos={produtos} itens={itens} setItens={setItens} />
-            <Botao texto="Registrar pedido" tipo="submit" desabilitado={itens.length === 0 || !usuarioId} />
+            <Botao texto="Registrar pedido" tipo="submit" desabilitado={itens.length === 0 || !usuarioId || (!podeAbrir && !comandaId)} />
           </form>
         ) : null}
         <section className="cartoes pedidos-metricas">
@@ -888,7 +915,7 @@ function PedidosGestor() {
                       {comanda.nomeCliente || 'Sem cliente'}
                       {total != null ? ` · Total ${formatarMoeda(total)}` : ''}
                     </span>
-                    <Botao texto="Fechar" variante="secundario" desabilitado={bloqueado} onClick={() => setFechando(comanda)} />
+                    {podeFechar ? <Botao texto="Fechar" variante="secundario" desabilitado={bloqueado} onClick={() => setFechando(comanda)} /> : null}
                   </li>
                 )
               })}
@@ -951,6 +978,10 @@ function PedidosGestor() {
           <LinhasPedido
             pedidos={ativosVisiveis}
             bloqueado={bloqueado}
+            podeEditar={podeEditar}
+            podeEstornar={podeEstornar}
+            podeEstornarPago={podeEstornarPago}
+            podeCancelar={podeCancelar}
             onEditar={iniciarEdicao}
             onEstornar={(pedido) => abrirAcao(pedido, 'estorno')}
             onCancelar={(pedido) => abrirAcao(pedido, 'cancelamento')}
@@ -961,6 +992,10 @@ function PedidosGestor() {
           <LinhasPedido
             pedidos={historicoVisiveis}
             bloqueado={bloqueado}
+            podeEditar={podeEditar}
+            podeEstornar={podeEstornar}
+            podeEstornarPago={podeEstornarPago}
+            podeCancelar={podeCancelar}
             onEditar={iniciarEdicao}
             onEstornar={(pedido) => abrirAcao(pedido, 'estorno')}
             onCancelar={(pedido) => abrirAcao(pedido, 'cancelamento')}

@@ -12,6 +12,7 @@ import { apiBlob, apiFormulario, apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { formatarDataHora, rotuloStatus, textoResposta } from '../../../utils/formatacao'
 import { lerSessao } from '../../../utils/sessao'
+import { useFuncoes } from '../../../utils/funcoes'
 
 const ASSUNTOS_GESTOR = [
   { valor: '', rotulo: 'Selecione' },
@@ -49,6 +50,9 @@ function erroAnexo(arquivo) {
 
 function Suporte() {
   const gestor = lerSessao().perfil === 'GESTOR'
+  const { tem, pronto } = useFuncoes()
+  const podeAbrir = pronto && tem('RECLAMACAO_ABRIR')
+  const podeResponder = pronto && tem('RECLAMACAO_RESPONDER')
   const [assunto, setAssunto] = useState('')
   const [descricao, setDescricao] = useState('')
   const [arquivo, setArquivo] = useState(null)
@@ -152,6 +156,7 @@ function Suporte() {
         />
         <MensagemErro texto={erro} />
         <MensagemSucesso texto={sucesso} />
+        {podeAbrir ? (
         <form className="formulario pagina__painel" onSubmit={enviar}>
           {gestor ? (
             <FormFieldSelect id="assunto" rotulo="Assunto" valor={assunto} onChange={setAssunto} opcoes={ASSUNTOS_GESTOR} />
@@ -170,6 +175,7 @@ function Suporte() {
           />
           <Botao texto="Enviar reclamação" tipo="submit" />
         </form>
+        ) : null}
         <section className="pagina__painel">
           <Titulo nivel={2} texto="Minhas reclamações" />
           {historico.length === 0 ? <p>Nenhuma reclamação enviada.</p> : null}
@@ -211,6 +217,8 @@ function Suporte() {
                   {item.anexoNome ? (
                     <Botao texto={item.anexoNome} variante="fantasma" onClick={() => baixar(item)} />
                   ) : null}
+                  {podeResponder ? (
+                  <>
                   <FormFieldSelect
                     id={`status-${item.id}`}
                     rotulo="Status"
@@ -225,6 +233,8 @@ function Suporte() {
                     onChange={(valor) => alterar(item.id, 'resposta', valor)}
                   />
                   <Botao texto="Salvar" onClick={() => salvar(item)} />
+                  </>
+                  ) : null}
                 </article>
               )
             })}

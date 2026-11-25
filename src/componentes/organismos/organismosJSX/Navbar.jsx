@@ -17,6 +17,7 @@ import Badge from '../../atomos/atomosJSX/Badge'
 import Botao from '../../atomos/atomosJSX/Botao'
 import NavItem from '../../moleculas/moleculasJSX/NavItem'
 import { menuDe } from '../../../utils/menu'
+import { useFuncoes } from '../../../utils/funcoes'
 import { emVisaoGestor, lerSessao, lerVisao } from '../../../utils/sessao'
 import { rotuloPerfil } from '../../../utils/formatacao'
 import '../organismosCSS/Navbar.css'
@@ -26,7 +27,13 @@ function Navbar({ perfil, rotaAtual, onSair }) {
   const sessao = lerSessao()
   const visao = lerVisao()
   const emVisao = emVisaoGestor()
+  const { tem, pronto } = useFuncoes()
   const secoes = menuDe(emVisao ? 'GESTOR' : perfil)
+    .map((secao) => ({
+      ...secao,
+      itens: secao.itens.filter((item) => !item.funcoes || (pronto && item.funcoes.some((funcao) => tem(funcao)))),
+    }))
+    .filter((secao) => secao.itens.length > 0)
 
   return (
     <>

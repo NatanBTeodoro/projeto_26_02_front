@@ -10,8 +10,9 @@ import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { emVisaoGestor, lerSessao, visaoBloqueada } from '../../../utils/sessao'
+import { useFuncoes } from '../../../utils/funcoes'
 import { formatarBooleano, rotuloPerfil, rotuloStatus, validarSenha, DICA_SENHA } from '../../../utils/formatacao'
-import { PainelFuncoes, podeAtribuir } from './FuncoesEquipe'
+import { EscolhaFuncoes, PainelFuncoes, funcoesAtribuiveis, podeAtribuir } from './FuncoesEquipe'
 
 const perfis = [
   { valor: 'GESTOR', rotulo: 'Gestor' },
@@ -35,8 +36,15 @@ function Cadastros() {
   const [editandoUsuario, setEditandoUsuario] = useState(null)
   const [erro, setErro] = useState('')
   const [aviso, setAviso] = useState('')
-  const [minhasFuncoes, setMinhasFuncoes] = useState([])
   const [alvoFuncoes, setAlvoFuncoes] = useState(null)
+  const [cargosDisponiveis, setCargosDisponiveis] = useState([])
+  const [cargosNovos, setCargosNovos] = useState([])
+  const [funcoesNovas, setFuncoesNovas] = useState([])
+  const { tem, pronto, lista: minhasFuncoes } = useFuncoes()
+  const podeUsuario = pronto && tem('EQUIPE_USUARIO_GERIR')
+  const podeGestorFuncao = pronto && tem('EQUIPE_GESTOR_GERIR')
+  const podeSenhaFuncao = pronto && tem('EQUIPE_SENHA_REDEFINIR')
+  const podeAtribuirFuncoes = pronto && podeAtribuir(minhasFuncoes)
 
   async function carregar() {
     const pedidos = [apiJson(gestor ? endpoints.usuarios : `${endpoints.usuarios}${restauranteId ? `?restauranteId=${restauranteId}` : ''}`)]
@@ -55,10 +63,13 @@ function Cadastros() {
   }, [restauranteId])
 
   useEffect(() => {
-    apiJson(endpoints.funcoesMinhas)
-      .then(setMinhasFuncoes)
-      .catch(() => setMinhasFuncoes([]))
-  }, [])
+    if (!podeAtribuirFuncoes) return undefined
+    let vivo = true
+    apiJson(endpoints.cargosAtribuiveis)
+      .then((lista) => { if (vivo) setCargosDisponiveis(lista) })
+      .catch(() => { if (vivo) setCargosDisponiveis([]) })
+    return () => { vivo = false }
+  }, [podeAtribuirFuncoes])
 
   async function salvarRestaurante(evento) {
     evento.preventDefault()
@@ -131,7 +142,7 @@ function Cadastros() {
 
   async function salvarUsuario(evento) {
     evento.preventDefault()
-    if (bloqueado) return
+    if (bloqueado || !podeSalvar) return
     setErro('')
     if (!gestor && !editandoUsuario && !restauranteId) {
       setErro('Escolha o restaurante.')
@@ -160,20 +171,27 @@ function Cadastros() {
           body: JSON.stringify(corpo),
         })
       } else {
+        const corpo = {
+          nome: nome.trim(),
+          email: email.trim(),
+          senha,
+          perfil: gestor ? 'USUARIO' : perfil,
+          restauranteId: gestor ? null : Number(restauranteId),
+        }
+        if (podeAtribuirFuncoes) {
+          corpo.cargos = cargosNovos
+          corpo.authorities = funcoesNovas
+        }
         await apiJson(endpoints.usuarios, {
           method: 'POST',
-          body: JSON.stringify({
-            nome: nome.trim(),
-            email: email.trim(),
-            senha,
-            perfil: gestor ? 'USUARIO' : perfil,
-            restauranteId: gestor ? null : Number(restauranteId),
-          }),
+          body: JSON.stringify(corpo),
         })
       }
       setNome('')
       setEmail('')
       setSenha('')
+      setCargosNovos([])
+      setFuncoesNovas([])
       setEditandoUsuario(null)
       setAlvoFuncoes(null)
       setAviso(editandoUsuario ? 'Cadastro atualizado.' : 'Cadastro criado.')
@@ -188,6 +206,8 @@ function Cadastros() {
     setNome('')
     setEmail('')
     setSenha('')
+    setCargosNovos([])
+    setFuncoesNovas([])
     setAlvoFuncoes(null)
   }
 
@@ -264,6 +284,26 @@ function Cadastros() {
   const podeSenha = (usuario) => (
     sessao.perfil === 'ADMINISTRADOR' || (sessao.perfil === 'GESTOR' && usuario.perfil === 'USUARIO')
   )
+  const opcoesPerfil = perfis.filter((opcao) => (opcao.valor === 'USUARIO' ? podeUsuario : podeGestorFuncao))
+
+  function podeMexer(usuario) {
+    if (!pronto || bloqueado) return false
+    if (usuario.perfil === 'USUARIO') return podeUsuario
+    if (usuario.perfil === 'GESTOR') return podeGestorFuncao
+    return false
+  }
+
+  function podeAbrirEdicao(usuario) {
+    if (bloqueado) return false
+    return podeMexer(usuario)
+      || (podeSenhaFuncao && podeSenha(usuario))
+      || podeAtribuirFuncoes
+  }
+
+  const podeSalvar = editandoUsuario
+    ? podeMexer(editandoUsuario)
+    : (gestor ? podeUsuario : opcoesPerfil.length > 0)
+  const mostraFormulario = !bloqueado && (editandoUsuario ? podeAbrirEdicao(editandoUsuario) : podeSalvar)
 
   return (
     <TemplateAutenticado rotaAtual="/cadastros">
@@ -344,7 +384,7 @@ function Cadastros() {
 
         <section className="pagina__painel">
           <Titulo nivel={2} texto={gestor ? 'Usuários' : 'Gestores e usuários'} />
-          {!bloqueado ? (
+          {mostraFormulario ? (
             <form className="formulario" onSubmit={salvarUsuario}>
               {!gestor && !editandoUsuario ? (
                 <FormFieldSelect
@@ -361,21 +401,31 @@ function Cadastros() {
                 <FormField id="senha-pessoa" rotulo="Senha" tipo="password" valor={senha} onChange={setSenha} dica={DICA_SENHA} obrigatorio />
               ) : null}
               {!gestor && (!editandoUsuario || String(editandoUsuario.id) !== String(sessao.usuarioId)) ? (
-                <FormFieldSelect id="perfil" rotulo="Perfil" valor={perfil} onChange={setPerfil} opcoes={perfis} />
+                <FormFieldSelect id="perfil" rotulo="Perfil" valor={perfil} onChange={setPerfil} opcoes={opcoesPerfil} />
+              ) : null}
+              {!editandoUsuario && podeAtribuirFuncoes ? (
+                <EscolhaFuncoes
+                  cargos={cargosDisponiveis}
+                  cargosMarcados={cargosNovos}
+                  onCargo={(id) => setCargosNovos((lista) => (lista.includes(id) ? lista.filter((item) => item !== id) : [...lista, id]))}
+                  funcoes={funcoesAtribuiveis(minhasFuncoes, gestor)}
+                  funcoesMarcadas={funcoesNovas}
+                  onFuncao={(authority) => setFuncoesNovas((lista) => (lista.includes(authority) ? lista.filter((item) => item !== authority) : [...lista, authority]))}
+                />
               ) : null}
               <div className="formulario__acoes">
-                <Botao texto={editandoUsuario ? 'Salvar' : 'Cadastrar'} tipo="submit" />
-                {editandoUsuario ? (
+                {podeSalvar ? <Botao texto={editandoUsuario ? 'Salvar' : 'Cadastrar'} tipo="submit" /> : null}
+                {editandoUsuario && podeMexer(editandoUsuario) ? (
                   <Botao
                     texto={editandoUsuario.ativo ? 'Inativar' : 'Reativar'}
                     variante="fantasma"
                     onClick={() => alternarUsuario(editandoUsuario)}
                   />
                 ) : null}
-                {editandoUsuario && podeSenha(editandoUsuario) ? (
+                {editandoUsuario && podeSenhaFuncao && podeSenha(editandoUsuario) ? (
                   <Botao texto="Nova senha" variante="fantasma" onClick={() => redefinirSenha(editandoUsuario)} />
                 ) : null}
-                {editandoUsuario && podeAtribuir(minhasFuncoes) ? (
+                {editandoUsuario && podeAtribuirFuncoes ? (
                   <Botao
                     texto={alvoFuncoes ? 'Ocultar funções' : 'Atribuir funções'}
                     variante="secundario"
@@ -411,7 +461,7 @@ function Cadastros() {
                 chave: 'acao',
                 rotulo: '',
                 papel: 'acoes',
-                celula: (usuario) => (!bloqueado ? (
+                celula: (usuario) => (podeAbrirEdicao(usuario) ? (
                   <>
                     <Botao
                       texto={editandoUsuario && String(editandoUsuario.id) === String(usuario.id) ? 'Editando' : 'Editar'}
@@ -422,7 +472,7 @@ function Cadastros() {
                           : editarUsuario(usuario)
                       )}
                     />
-                    <Botao texto="Deletar" variante="perigo" onClick={() => deletarUsuario(usuario)} />
+                    {podeMexer(usuario) ? <Botao texto="Deletar" variante="perigo" onClick={() => deletarUsuario(usuario)} /> : null}
                   </>
                 ) : null),
               },

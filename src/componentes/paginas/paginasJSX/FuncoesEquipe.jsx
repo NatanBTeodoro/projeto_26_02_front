@@ -7,7 +7,7 @@ import ListaFuncoes from '../../moleculas/moleculasJSX/ListaFuncoes'
 import Titulo from '../../atomos/atomosJSX/Titulo'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
-import { rotuloFuncao } from '../../../utils/formatacao'
+import { agruparFuncoes, rotuloFuncao } from '../../../utils/formatacao'
 
 const BLOQUEADAS_GESTOR = [
   'EQUIPE_GESTOR_GERIR',
@@ -19,6 +19,54 @@ export function podeAtribuir(minhas) {
   return Array.isArray(minhas) && minhas.includes('EQUIPE_FUNCAO_ATRIBUIR')
 }
 
+export function unirFuncoes(...listas) {
+  return [...new Set(listas.flat().filter(Boolean))]
+}
+
+export function funcoesAtribuiveis(minhas, gestor) {
+  return (minhas || []).filter((authority) => !gestor || !BLOQUEADAS_GESTOR.includes(authority))
+}
+
+function ResumoFuncoes({ titulo, authorities, vazio }) {
+  const grupos = agruparFuncoes(unirFuncoes(authorities))
+  return (
+    <div>
+      <Titulo nivel={3} texto={titulo} />
+      {grupos.length === 0 ? <p>{vazio}</p> : grupos.map(([grupo, itens]) => (
+        <div key={grupo}>
+          <p className="lista-funcoes__grupo">{grupo}</p>
+          <ul>
+            {itens.map((authority) => <li key={authority}>{rotuloFuncao(authority)}</li>)}
+          </ul>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function EscolhaFuncoes({ cargos, cargosMarcados, onCargo, funcoes, funcoesMarcadas, onFuncao }) {
+  const escolhidas = unirFuncoes(
+    (cargos || []).filter((cargo) => cargosMarcados.includes(cargo.id)).flatMap((cargo) => cargo.authorities || []),
+    funcoesMarcadas,
+  )
+  return (
+    <div>
+      <Titulo nivel={3} texto="Funções" />
+      {(cargos || []).map((cargo) => (
+        <Checkbox
+          key={cargo.id}
+          id={`novo-cargo-${cargo.id}`}
+          texto={cargo.nome}
+          marcado={cargosMarcados.includes(cargo.id)}
+          onChange={() => onCargo(cargo.id)}
+        />
+      ))}
+      <ListaFuncoes authorities={funcoes} marcadas={funcoesMarcadas} onAlternar={onFuncao} idPrefixo="novo-cadastro" />
+      <ResumoFuncoes titulo="Funções desta conta" authorities={escolhidas} vazio="Nenhuma função selecionada. A conta entra sem funções." />
+    </div>
+  )
+}
+
 export function PainelFuncoes({ usuario, minhas, gestor, onFechar }) {
   const [atuais, setAtuais] = useState([])
   const [cargos, setCargos] = useState([])
@@ -27,7 +75,13 @@ export function PainelFuncoes({ usuario, minhas, gestor, onFechar }) {
   const [erro, setErro] = useState('')
   const [avancado, setAvancado] = useState(false)
 
-  const opcoes = (minhas || []).filter((authority) => !gestor || !BLOQUEADAS_GESTOR.includes(authority))
+  const opcoes = funcoesAtribuiveis(minhas, gestor)
+  const liberadas = unirFuncoes(atuais.map((linha) => linha.authority))
+  const escolhidas = unirFuncoes(
+    cargos.filter((cargo) => cargosMarcados.includes(cargo.id)).flatMap((cargo) => cargo.authorities || []),
+    avulsas,
+  )
+  const novas = escolhidas.filter((authority) => !liberadas.includes(authority))
 
   useEffect(() => {
     Promise.all([
@@ -74,8 +128,6 @@ export function PainelFuncoes({ usuario, minhas, gestor, onFechar }) {
     }
   }
 
-  const nomes = Object.fromEntries(cargos.map((cargo) => [cargo.id, cargo.nome]))
-
   return (
     <Painel titulo={`Funções de ${usuario.nome}`}>
       <p>
@@ -83,22 +135,7 @@ export function PainelFuncoes({ usuario, minhas, gestor, onFechar }) {
         {usuario.restauranteNome ? ` · ${usuario.restauranteNome}` : ''}
       </p>
       <MensagemErro texto={erro} />
-      <ul>
-        {atuais.filter((linha) => linha.cargoOrigemId != null).map((linha) => (
-          <li key={`cargo-${linha.authority}`}>
-            {rotuloFuncao(linha.authority)} · cargo {nomes[linha.cargoOrigemId] || linha.cargoOrigemId}
-            {linha.atribuidoPor ? ` · por ${linha.atribuidoPor}` : ''}
-            {linha.atribuidoEm ? ` · ${linha.atribuidoEm}` : ''}
-          </li>
-        ))}
-        {atuais.filter((linha) => linha.cargoOrigemId == null).map((linha) => (
-          <li key={`avulsa-${linha.authority}`}>
-            {rotuloFuncao(linha.authority)} · avulsa
-            {linha.atribuidoPor ? ` · por ${linha.atribuidoPor}` : ''}
-            {linha.atribuidoEm ? ` · ${linha.atribuidoEm}` : ''}
-          </li>
-        ))}
-      </ul>
+      <ResumoFuncoes titulo="Já liberadas" authorities={liberadas} vazio="Nenhuma função liberada nesta conta." />
       <form onSubmit={salvar}>
         <Titulo nivel={3} texto="Cargos" />
         {cargos.length === 0 ? <p>Nenhum cargo que você possa atribuir.</p> : null}
@@ -115,6 +152,11 @@ export function PainelFuncoes({ usuario, minhas, gestor, onFechar }) {
         {avancado ? (
           <ListaFuncoes authorities={opcoes} marcadas={avulsas} onAlternar={alternarAvulsa} idPrefixo={`equipe-${usuario.id}`} />
         ) : null}
+        <ResumoFuncoes
+          titulo="Novas funções"
+          authorities={novas}
+          vazio="Nenhuma função nova na seleção."
+        />
         <div className="formulario__acoes">
           <Botao texto="Salvar funções" tipo="submit" />
           <Botao texto="Fechar" variante="fantasma" onClick={onFechar} />

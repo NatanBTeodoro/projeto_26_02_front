@@ -11,6 +11,7 @@ import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { formatarBooleano, formatarMoeda, normalizarBusca } from '../../../utils/formatacao'
 import { emVisaoGestor, lerSessao, visaoBloqueada } from '../../../utils/sessao'
+import { useFuncoes } from '../../../utils/funcoes'
 import ImportarCardapio from '../../organismos/organismosJSX/ImportarCardapio'
 
 const produtoVazio = {
@@ -32,6 +33,9 @@ function Produtos() {
   const [busca, setBusca] = useState('')
   const [categoriaFiltro, setCategoriaFiltro] = useState(null)
   const bloqueado = visaoBloqueada()
+  const { tem, pronto } = useFuncoes()
+  const podeEscrever = pronto && tem('CARDAPIO_ESCREVER') && !bloqueado
+  const verCusto = pronto && tem('CUSTO_LER')
   const tamanho = 10
 
   async function carregar() {
@@ -172,38 +176,39 @@ function Produtos() {
         />
         <MensagemErro texto={erro} />
         {aviso ? <p>{aviso}</p> : null}
-        {bloqueado ? <p>Restaurante fechado ou inativo: o cardápio pode ser consultado, mas não alterado.</p> : <ImportarCardapio aoConcluir={carregar} />}
+        {bloqueado ? <p>Restaurante fechado ou inativo: o cardápio pode ser consultado, mas não alterado.</p> : null}
+        {podeEscrever ? <ImportarCardapio aoConcluir={carregar} /> : null}
         <div className="pagina__grade pagina__grade--lateral">
           <section className="pagina__painel">
-            {bloqueado ? null : (
+            {podeEscrever ? (
             <form className="formulario" onSubmit={criarCategoria}>
               <FormField id="categoria" rotulo="Nova categoria" valor={nomeCategoria} onChange={setNomeCategoria} obrigatorio />
               <Botao texto="Salvar categoria" tipo="submit" />
             </form>
-            )}
+            ) : null}
             <ul>
               {categoriasOrdenadas.map((categoria) => (
                 <li key={categoria.id}>
                   {categoria.nome} ({formatarBooleano(categoria.ativa)}){' '}
-                  {bloqueado ? null : (
+                  {podeEscrever ? (
                   <Botao
                     texto={categoria.ativa ? 'Inativar' : 'Reativar'}
                     variante="fantasma"
                     onClick={() => alternarCategoria(categoria)}
                   />
-                  )}
+                  ) : null}
                 </li>
               ))}
             </ul>
           </section>
           <section className="pagina__painel">
-            {bloqueado ? null : (
+            {podeEscrever ? (
             <form className="formulario" onSubmit={salvarProduto}>
               <FormFieldSelect id="categoria-produto" rotulo="Categoria" valor={form.categoriaId} onChange={(valor) => alterar('categoriaId', valor)} opcoes={opcoesCategoria} />
               <FormField id="nome" rotulo="Nome" valor={form.nome} onChange={(valor) => alterar('nome', valor)} obrigatorio />
               <div className="formulario__linha">
                 <FormField id="preco" rotulo="Preço" tipo="number" valor={form.precoAtual} onChange={(valor) => alterar('precoAtual', valor)} obrigatorio />
-                <FormField id="custo" rotulo="Custo" tipo="number" valor={form.custoAtual} onChange={(valor) => alterar('custoAtual', valor)} />
+                {verCusto ? <FormField id="custo" rotulo="Custo" tipo="number" valor={form.custoAtual} onChange={(valor) => alterar('custoAtual', valor)} /> : null}
               </div>
               <div className="formulario__acoes">
                 <Botao texto={editando ? 'Atualizar produto' : 'Cadastrar produto'} tipo="submit" />
@@ -212,7 +217,7 @@ function Produtos() {
                 ) : null}
               </div>
             </form>
-            )}
+            ) : null}
             <div className="busca-categoria">
               <FormField
                 id="busca-produto"
@@ -257,18 +262,18 @@ function Produtos() {
                 { chave: 'nome', rotulo: 'Nome' },
                 { chave: 'categoriaNome', rotulo: 'Categoria' },
                 { chave: 'precoAtual', rotulo: 'Preço', papel: 'numero', celula: (produto) => formatarMoeda(produto.precoAtual) },
-                { chave: 'custoAtual', rotulo: 'Custo', papel: 'numero', celula: (produto) => formatarMoeda(produto.custoAtual) },
+                ...(verCusto ? [{ chave: 'custoAtual', rotulo: 'Custo', papel: 'numero', celula: (produto) => formatarMoeda(produto.custoAtual) }] : []),
                 { chave: 'ativo', rotulo: 'Ativo', celula: (produto) => formatarBooleano(produto.ativo) },
                 {
                   chave: 'acao',
                   rotulo: '',
                   papel: 'acoes',
-                  celula: (produto) => (bloqueado ? null : (
+                  celula: (produto) => (podeEscrever ? (
                     <>
                       <Botao texto="Editar" variante="secundario" onClick={() => editar(produto)} />
                       <Botao texto={produto.ativo ? 'Inativar' : 'Reativar'} variante="fantasma" onClick={() => alternarProduto(produto)} />
                     </>
-                  )),
+                  ) : null),
                 },
               ]}
             />
