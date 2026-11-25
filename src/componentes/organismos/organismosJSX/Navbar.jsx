@@ -12,26 +12,30 @@
 //   <Navbar perfil="GESTOR" rotaAtual="/produtos" onSair={sair} />
 
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Logo from '../../atomos/atomosJSX/Logo'
 import Badge from '../../atomos/atomosJSX/Badge'
 import Botao from '../../atomos/atomosJSX/Botao'
 import NavItem from '../../moleculas/moleculasJSX/NavItem'
-import { menuDe } from '../../../utils/menu'
+import { itemVisivel, menuDe } from '../../../utils/menu'
 import { useFuncoes } from '../../../utils/funcoes'
 import { emVisaoGestor, lerSessao, lerVisao } from '../../../utils/sessao'
 import { rotuloPerfil } from '../../../utils/formatacao'
+import { destinoVisao, visoesDoUsuario } from '../../../utils/cargos'
 import '../organismosCSS/Navbar.css'
 
 function Navbar({ perfil, rotaAtual, onSair }) {
   const [aberto, setAberto] = useState(false)
+  const navigate = useNavigate()
   const sessao = lerSessao()
   const visao = lerVisao()
   const emVisao = emVisaoGestor()
-  const { tem, pronto } = useFuncoes()
-  const secoes = menuDe(emVisao ? 'GESTOR' : perfil)
+  const { tem, pronto, visao: visaoFuncao, cargos, escolherVisao } = useFuncoes()
+  const opcoesVisao = perfil === 'USUARIO' && !emVisao ? visoesDoUsuario(cargos) : []
+  const secoes = menuDe(emVisao ? 'GESTOR' : perfil, [], pronto, visaoFuncao)
     .map((secao) => ({
       ...secao,
-      itens: secao.itens.filter((item) => !item.funcoes || (pronto && item.funcoes.some((funcao) => tem(funcao)))),
+      itens: secao.itens.filter((item) => itemVisivel(item, pronto, tem)),
     }))
     .filter((secao) => secao.itens.length > 0)
 
@@ -52,6 +56,24 @@ function Navbar({ perfil, rotaAtual, onSair }) {
           <span>{sessao.usuarioNome || sessao.usuarioEmail || 'Sessão local'}</span>
           <Badge texto={emVisao ? 'Admin · visão de gestor' : rotuloPerfil(perfil)} variante="marca" />
           {emVisao ? <span>{visao.restauranteNome}</span> : null}
+          {opcoesVisao.length > 1 ? (
+            <label className="navbar__visao">
+              Visão
+              <select
+                value={opcoesVisao.includes(visaoFuncao) ? visaoFuncao : opcoesVisao[0]}
+                onChange={(evento) => {
+                  const nome = evento.target.value
+                  escolherVisao(nome)
+                  setAberto(false)
+                  navigate(destinoVisao(nome))
+                }}
+              >
+                {opcoesVisao.map((nome) => (
+                  <option key={nome} value={nome}>{nome}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
         </p>
         <nav className="navbar__menu">
           {secoes.map((secao) => (

@@ -38,7 +38,7 @@ const MENUS = {
   ],
   USUARIO: [
     {
-      titulo: 'Usuário',
+      titulo: 'Atendente',
       itens: [
         { href: '/dashboard', rotulo: 'Dashboard', funcoes: ['PEDIDO_LER'] },
         { href: '/pedidos', rotulo: 'Pedidos', funcoes: ['PEDIDO_LER', 'PEDIDO_LANCAR', 'COMANDA_LER', 'COMANDA_ABRIR'] },
@@ -49,6 +49,35 @@ const MENUS = {
   ],
 }
 
-export function menuDe(perfil) {
+const MENUS_VISAO = {
+  Atendente: MENUS.USUARIO,
+  Caixa: [
+    {
+      titulo: 'Caixa',
+      itens: [
+        { href: '/pedidos', rotulo: 'Pedidos', funcoes: ['PEDIDO_LER', 'COMANDA_FECHAR', 'PEDIDO_CANCELAR', 'PEDIDO_ESTORNAR', 'PEDIDO_EDITAR'] },
+        { href: '/perfil', rotulo: 'Perfil' },
+      ],
+    },
+  ],
+  Estoquista: [
+    {
+      titulo: 'Estoquista',
+      itens: [
+        { href: '/produtos', rotulo: 'Produtos', funcoes: ['CARDAPIO_LER', 'CARDAPIO_ESCREVER', 'CUSTO_LER'] },
+        { href: '/perfil', rotulo: 'Perfil' },
+      ],
+    },
+  ],
+}
+
+export function menuDe(perfil, lista = [], pronto = true, visao = 'Atendente') {
+  if (perfil === 'USUARIO') return MENUS_VISAO[visao] || MENUS_VISAO.Atendente
   return MENUS[perfil] || []
+}
+
+export function itemVisivel(item, pronto, tem) {
+  if (item.sem?.some((funcao) => tem(funcao))) return false
+  if (!item.funcoes) return true
+  return pronto && item.funcoes.some((funcao) => tem(funcao))
 }

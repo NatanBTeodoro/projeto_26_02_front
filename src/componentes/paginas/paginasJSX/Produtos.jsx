@@ -33,7 +33,7 @@ function Produtos() {
   const [busca, setBusca] = useState('')
   const [categoriaFiltro, setCategoriaFiltro] = useState(null)
   const bloqueado = visaoBloqueada()
-  const { tem, pronto } = useFuncoes()
+  const { tem, pronto, visao } = useFuncoes()
   const podeEscrever = pronto && tem('CARDAPIO_ESCREVER') && !bloqueado
   const verCusto = pronto && tem('CUSTO_LER')
   const tamanho = 10
@@ -165,6 +165,9 @@ function Produtos() {
 
   if (lerSessao().perfil === 'ADMINISTRADOR' && !emVisaoGestor()) {
     return <Navigate to="/restaurantes" replace />
+  }
+  if (lerSessao().perfil === 'USUARIO' && visao !== 'Estoquista') {
+    return <Navigate to={visao === 'Caixa' ? '/pedidos' : '/cardapio'} replace />
   }
 
   return (

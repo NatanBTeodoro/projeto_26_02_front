@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import {
   Bar,
   BarChart,
@@ -28,6 +29,7 @@ import GraficoCurvaAbc from '../../organismos/organismosJSX/GraficoCurvaAbc'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { emVisaoGestor, lerSessao } from '../../../utils/sessao'
+import { useFuncoes } from '../../../utils/funcoes'
 import {
   CORES_CLASSE,
   formatarMoeda,
@@ -489,19 +491,23 @@ function DashboardGestor() {
   )
 }
 
-function DashboardUsuario() {
+function DashboardUsuario({ somenteMeus = false }) {
   const [pedidos, setPedidos] = useState([])
   const [erro, setErro] = useState('')
   const [pagina, setPagina] = useState(0)
   const [busca, setBusca] = useState('')
   const [status, setStatus] = useState('')
   const tamanho = 10
+  const meuId = lerSessao().usuarioId
 
   useEffect(() => {
     apiJson(endpoints.pedidos)
-      .then(setPedidos)
+      .then((lista) => {
+        const recebidos = Array.isArray(lista) ? lista : []
+        setPedidos(somenteMeus ? recebidos.filter((pedido) => String(pedido.usuarioId) === String(meuId)) : recebidos)
+      })
       .catch((falha) => setErro(falha.message))
-  }, [])
+  }, [somenteMeus, meuId])
 
   const termo = normalizarBusca(busca.trim())
   const porHorario = [...pedidos]
@@ -604,9 +610,33 @@ function DashboardUsuario() {
 
 function Dashboard() {
   const sessao = lerSessao()
+  const { tem, pronto, visao } = useFuncoes()
+  if (sessao.perfil === 'USUARIO' && !pronto) {
+    return (
+      <TemplateAutenticado rotaAtual="/dashboard">
+        <div className="pagina" />
+      </TemplateAutenticado>
+    )
+  }
+  if (sessao.perfil === 'USUARIO' && visao === 'Caixa') return <Navigate to="/pedidos" replace />
+  if (sessao.perfil === 'USUARIO' && visao === 'Estoquista') return <Navigate to="/produtos" replace />
   if (sessao.perfil === 'USUARIO') return <DashboardUsuario />
   if (sessao.perfil === 'ADMINISTRADOR' && !emVisaoGestor()) return <DashboardAdmin />
-  return <DashboardGestor />
+  if (!pronto) {
+    return (
+      <TemplateAutenticado rotaAtual="/dashboard">
+        <div className="pagina" />
+      </TemplateAutenticado>
+    )
+  }
+  if (tem('ANALISE_VER_OPERACIONAL', 'ANALISE_VER_FINANCEIRO')) return <DashboardGestor />
+  return (
+    <TemplateAutenticado rotaAtual="/dashboard">
+      <div className="pagina">
+        <CabecalhoPagina titulo="Dashboard" descricao="Nenhum painel liberado para esta conta." />
+      </div>
+    </TemplateAutenticado>
+  )
 }
 
 export default Dashboard

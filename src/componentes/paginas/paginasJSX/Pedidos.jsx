@@ -618,7 +618,7 @@ function LinhasPedido({ pedidos, bloqueado, onEditar, onEstornar, onCancelar, po
   ))
 }
 
-function PedidosGestor() {
+function PedidosGestor({ casa = false }) {
   const bloqueado = visaoBloqueada()
   const { tem, pronto } = useFuncoes()
   const podeLancar = pronto && tem('PEDIDO_LANCAR')
@@ -656,14 +656,25 @@ function PedidosGestor() {
   const [aviso, setAviso] = useState('')
 
   async function carregar() {
-    const cardapio = tem('PEDIDO_LANCAR')
-    const equipe = tem('PEDIDO_LANCAR') || tem('COMANDA_FECHAR') || tem('COMANDA_LER')
+    const cardapio = tem('PEDIDO_LANCAR') && !casa
+    const equipe = !casa && (tem('PEDIDO_LANCAR') || tem('COMANDA_FECHAR') || tem('COMANDA_LER'))
     const [listaPedidos, listaUsuarios, listaCategorias, listaProdutos] = await Promise.all([
-      tem('PEDIDO_LER') ? apiJson(endpoints.pedidos) : Promise.resolve([]),
+      tem('PEDIDO_LER') ? apiJson(casa ? `${endpoints.pedidos}?casa=true` : endpoints.pedidos) : Promise.resolve([]),
       equipe ? apiJson(endpoints.usuarios).catch(() => []) : Promise.resolve([]),
       cardapio ? apiJson(endpoints.categorias).catch(() => []) : Promise.resolve([]),
       cardapio ? apiJson(endpoints.produtos).catch(() => []) : Promise.resolve([]),
     ])
+    if (casa) {
+      const abertasCasa = tem('COMANDA_FECHAR')
+        ? await apiJson(`${endpoints.comandas}?abertas=true`).catch(() => [])
+        : []
+      setPedidos(listaPedidos)
+      setUsuarios([])
+      setCategorias([])
+      setProdutos([])
+      setTodasComandas(Array.isArray(abertasCasa) ? abertasCasa : [])
+      return
+    }
     setPedidos(listaPedidos)
     const operadores = listaUsuarios.filter((usuario) => usuario.perfil === 'USUARIO')
     setUsuarios(operadores.filter((usuario) => usuario.ativo))
@@ -849,7 +860,7 @@ function PedidosGestor() {
             titulo="Pedidos"
             descricao="Cada item mostra o valor unitário e o total da linha. Fechar a comanda marca os pedidos ativos como pagos; só os pagos entram nas análises."
           />
-          {!bloqueado && podeLancar ? (
+          {!bloqueado && podeLancar && !casa ? (
             <Botao
               texto={mostrarFormulario ? 'Fechar lançamento' : 'Registrar pedido como usuário'}
               onClick={() => setMostrarFormulario((atual) => !atual)}
@@ -859,7 +870,7 @@ function PedidosGestor() {
         <MensagemErro texto={erro} />
         {aviso ? <p>{aviso}</p> : null}
         {bloqueado ? <p>Restaurante fechado ou inativo: os pedidos podem ser consultados, mas não alterados.</p> : null}
-        {mostrarFormulario && !bloqueado && podeLancar ? (
+        {mostrarFormulario && !bloqueado && podeLancar && !casa ? (
           <form className="formulario pagina__painel" onSubmit={salvar}>
             <FormFieldSelect
               id="usuario"
@@ -1067,6 +1078,9 @@ function PedidosGestor() {
 
 function Pedidos() {
   const sessao = lerSessao()
+  const { visao } = useFuncoes()
+  if (sessao.perfil === 'USUARIO' && visao === 'Estoquista') return <Navigate to="/produtos" replace />
+  if (sessao.perfil === 'USUARIO' && visao === 'Caixa') return <PedidosGestor casa />
   if (sessao.perfil === 'USUARIO') return <PedidosUsuario />
   if (sessao.perfil === 'ADMINISTRADOR' && !emVisaoGestor()) return <Navigate to="/restaurantes" replace />
   return <PedidosGestor />

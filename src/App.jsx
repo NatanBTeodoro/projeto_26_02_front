@@ -37,13 +37,13 @@ function App() {
         <Route path="/restaurantes" element={proteger(<Restaurantes />, ['ADMINISTRADOR'])} />
         <Route path="/cadastros" element={proteger(<Cadastros />, ['ADMINISTRADOR', 'GESTOR'])} />
         <Route path="/funcoes" element={proteger(<FuncoesRede />, ['ADMINISTRADOR'])} />
-        <Route path="/produtos" element={proteger(<Produtos />, ['ADMINISTRADOR', 'GESTOR'])} />
+        <Route path="/produtos" element={proteger(<Produtos />, ['ADMINISTRADOR', 'GESTOR', 'USUARIO'])} />
         <Route path="/pedidos" element={proteger(<Pedidos />, ['ADMINISTRADOR', 'GESTOR', 'USUARIO'])} />
         <Route path="/perfil" element={proteger(<Perfil />, ['TI', 'ADMINISTRADOR', 'GESTOR', 'USUARIO'])} />
         <Route path="/admins" element={proteger(<Admins />, ['TI'])} />
         <Route path="/reclamacoes" element={proteger(<Reclamacoes />, ['TI'])} />
         <Route path="/suporte" element={proteger(<Suporte />, ['ADMINISTRADOR', 'GESTOR'])} />
-        <Route path="/cardapio" element={proteger(<Cardapio />, ['USUARIO'])} />
+        <Route path="/cardapio" element={proteger(<Cardapio />, ['USUARIO', 'GESTOR', 'ADMINISTRADOR'])} />
         <Route path="/usuarios" element={<Navigate to="/cadastros" replace />} />
         <Route path="*" element={<Inicio />} />
       </Routes>

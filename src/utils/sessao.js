@@ -7,6 +7,7 @@ const CHAVES = [
   'restauranteId',
   'restauranteNome',
   'restauranteStatus',
+  'visaoFuncao',
 ]
 
 const CHAVE_LEMBRAR = 'lembrarLogin'
@@ -94,6 +95,14 @@ export function emVisaoGestor() {
 
 export function visaoBloqueada() {
   return emVisaoGestor() && lerVisao().restauranteStatus !== 'ATIVO'
+}
+
+export function lerVisaoFuncao() {
+  return deposito().getItem('visaoFuncao') || ''
+}
+
+export function gravarVisaoFuncao(nome) {
+  deposito().setItem('visaoFuncao', nome || '')
 }
 
 export function destinoInicial(perfil) {

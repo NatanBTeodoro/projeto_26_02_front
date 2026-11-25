@@ -13,6 +13,7 @@ import { emVisaoGestor, lerSessao, visaoBloqueada } from '../../../utils/sessao'
 import { useFuncoes } from '../../../utils/funcoes'
 import { formatarBooleano, rotuloPerfil, rotuloStatus, validarSenha, DICA_SENHA } from '../../../utils/formatacao'
 import { EscolhaFuncoes, PainelFuncoes, funcoesAtribuiveis, podeAtribuir } from './FuncoesEquipe'
+import { cargosPara, funcoesPara } from '../../../utils/cargos'
 
 const perfis = [
   { valor: 'GESTOR', rotulo: 'Gestor' },
@@ -61,6 +62,13 @@ function Cadastros() {
   useEffect(() => {
     carregar().catch((falha) => setErro(falha.message))
   }, [restauranteId])
+
+  useEffect(() => {
+    const alvo = gestor ? 'USUARIO' : perfil
+    const permitidos = new Set(cargosPara(cargosDisponiveis, alvo).map((cargo) => cargo.id))
+    setCargosNovos((lista) => lista.filter((id) => permitidos.has(id)))
+    setFuncoesNovas((lista) => funcoesPara(lista, alvo))
+  }, [perfil, cargosDisponiveis])
 
   useEffect(() => {
     if (!podeAtribuirFuncoes) return undefined
@@ -405,10 +413,10 @@ function Cadastros() {
               ) : null}
               {!editandoUsuario && podeAtribuirFuncoes ? (
                 <EscolhaFuncoes
-                  cargos={cargosDisponiveis}
+                  cargos={cargosPara(cargosDisponiveis, gestor ? 'USUARIO' : perfil)}
                   cargosMarcados={cargosNovos}
                   onCargo={(id) => setCargosNovos((lista) => (lista.includes(id) ? lista.filter((item) => item !== id) : [...lista, id]))}
-                  funcoes={funcoesAtribuiveis(minhasFuncoes, gestor)}
+                  funcoes={funcoesPara(funcoesAtribuiveis(minhasFuncoes, gestor), gestor ? 'USUARIO' : perfil)}
                   funcoesMarcadas={funcoesNovas}
                   onFuncao={(authority) => setFuncoesNovas((lista) => (lista.includes(authority) ? lista.filter((item) => item !== authority) : [...lista, authority]))}
                 />

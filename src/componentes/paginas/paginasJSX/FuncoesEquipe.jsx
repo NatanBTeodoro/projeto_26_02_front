@@ -8,6 +8,7 @@ import Titulo from '../../atomos/atomosJSX/Titulo'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { agruparFuncoes, rotuloFuncao } from '../../../utils/formatacao'
+import { cargoCabe, cargosPara, funcoesPara } from '../../../utils/cargos'
 
 const BLOQUEADAS_GESTOR = [
   'EQUIPE_GESTOR_GERIR',
@@ -75,7 +76,9 @@ export function PainelFuncoes({ usuario, minhas, gestor, onFechar }) {
   const [erro, setErro] = useState('')
   const [avancado, setAvancado] = useState(false)
 
-  const opcoes = funcoesAtribuiveis(minhas, gestor)
+  const opcoes = funcoesPara(funcoesAtribuiveis(minhas, gestor), usuario.perfil)
+  const cargosDoPerfil = cargosPara(cargos, usuario.perfil)
+  const cargosFora = cargos.filter((cargo) => cargosMarcados.includes(cargo.id) && !cargoCabe(usuario.perfil, cargo.nome))
   const liberadas = unirFuncoes(atuais.map((linha) => linha.authority))
   const escolhidas = unirFuncoes(
     cargos.filter((cargo) => cargosMarcados.includes(cargo.id)).flatMap((cargo) => cargo.authorities || []),
@@ -138,8 +141,19 @@ export function PainelFuncoes({ usuario, minhas, gestor, onFechar }) {
       <ResumoFuncoes titulo="Já liberadas" authorities={liberadas} vazio="Nenhuma função liberada nesta conta." />
       <form onSubmit={salvar}>
         <Titulo nivel={3} texto="Cargos" />
-        {cargos.length === 0 ? <p>Nenhum cargo que você possa atribuir.</p> : null}
-        {cargos.map((cargo) => (
+        {cargosDoPerfil.length === 0 && cargosFora.length === 0 ? <p>Nenhum cargo que você possa atribuir.</p> : null}
+        {cargosFora.map((cargo) => (
+          <Checkbox
+            key={cargo.id}
+            id={`cargo-${cargo.id}`}
+            texto={`${cargo.nome} · já atribuído`}
+            marcado={cargosMarcados.includes(cargo.id)}
+            onChange={() => {
+              if (cargosMarcados.includes(cargo.id)) alternarCargo(cargo.id)
+            }}
+          />
+        ))}
+        {cargosDoPerfil.map((cargo) => (
           <Checkbox
             key={cargo.id}
             id={`cargo-${cargo.id}`}

@@ -27,6 +27,23 @@
   justify-content: space-between;
 }
 
+.navbar__visao {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+  font-size: 0.75rem;
+}
+
+.navbar__visao select {
+  width: 100%;
+  padding: 0.35rem 0.45rem;
+  border-radius: 0.4rem;
+  border: 1px solid color-mix(in srgb, var(--cor-branco) 35%, transparent);
+  background: var(--cor-branco);
+  color: var(--cor-texto);
+}
+
 .navbar__usuario {
   display: flex;
   flex-direction: column;

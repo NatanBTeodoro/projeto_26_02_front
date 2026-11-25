@@ -6,6 +6,7 @@ export const endpoints = {
   senha: '/api/auth/senha',
   usuarios: '/api/usuarios',
   funcoesMinhas: '/api/funcoes/minhas',
+  meusCargos: '/api/funcoes/meus-cargos',
   funcoesUsuario: (id) => `/api/usuarios/${id}/funcoes`,
   funcoesRede: '/api/admin/funcoes',
   funcaoRede: (id) => `/api/admin/funcoes/${id}`,

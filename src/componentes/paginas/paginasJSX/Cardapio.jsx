@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import TemplateAutenticado from '../../templates/templatesJSX/TemplateAutenticado'
 import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import Badge from '../../atomos/atomosJSX/Badge'
@@ -8,6 +8,8 @@ import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { formatarMoeda } from '../../../utils/formatacao'
+import { lerSessao } from '../../../utils/sessao'
+import { useFuncoes } from '../../../utils/funcoes'
 
 function agrupar(produtos) {
   const mapa = new Map()
@@ -26,6 +28,7 @@ function agrupar(produtos) {
 
 function Cardapio() {
   const navigate = useNavigate()
+  const { visao } = useFuncoes()
   const [grupos, setGrupos] = useState([])
   const [erro, setErro] = useState('')
   const [pronto, setPronto] = useState(false)
@@ -40,6 +43,9 @@ function Cardapio() {
   function irPara(id) {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
+
+  if (lerSessao().perfil === 'USUARIO' && visao === 'Caixa') return <Navigate to="/pedidos" replace />
+  if (lerSessao().perfil === 'USUARIO' && visao === 'Estoquista') return <Navigate to="/produtos" replace />
 
   return (
     <TemplateAutenticado
