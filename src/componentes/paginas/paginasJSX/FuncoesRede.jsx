@@ -4,8 +4,12 @@ import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import FormField from '../../moleculas/moleculasJSX/FormField'
 import Botao from '../../atomos/atomosJSX/Botao'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
+import ListaFuncoes from '../../moleculas/moleculasJSX/ListaFuncoes'
+import Tabela from '../../moleculas/moleculasJSX/Tabela'
+import Titulo from '../../atomos/atomosJSX/Titulo'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
+import { rotuloFuncao } from '../../../utils/formatacao'
 
 function FuncoesRede() {
   const [catalogo, setCatalogo] = useState([])
@@ -101,92 +105,51 @@ function FuncoesRede() {
           descricao="O catálogo só oferece funções que a sua conta já possui."
         />
         <MensagemErro texto={erro} />
-        <form onSubmit={criar}>
+        <form className="formulario pagina__painel" onSubmit={criar}>
           <FormField id="rotulo-funcao" rotulo="Rótulo" valor={rotulo} onChange={setRotulo} obrigatorio />
           <FormField id="descricao-funcao" rotulo="Descrição" valor={descricao} onChange={setDescricao} />
-          {minhas.map((authority) => (
-            <label key={authority}>
-              <input type="checkbox" checked={marcadas.includes(authority)} onChange={() => alternar(authority)} />
-              {authority}
-            </label>
-          ))}
+          <ListaFuncoes authorities={minhas} marcadas={marcadas} onAlternar={alternar} idPrefixo="catalogo" />
           <Botao texto="Criar função" tipo="submit" />
         </form>
-        <h2>Cargos da rede</h2>
+        <Titulo nivel={2} texto="Cargos da rede" />
         <form onSubmit={criarCargo}>
           <FormField id="nome-cargo" rotulo="Nome do cargo" valor={nomeCargo} onChange={setNomeCargo} obrigatorio />
           <p>As funções marcadas acima entram no cargo.</p>
           <Botao texto="Criar cargo" tipo="submit" />
         </form>
-        <table className="tabela">
-          <thead>
-            <tr>
-              <th>Cargo</th>
-              <th>Funções</th>
-              <th>Ativo</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {cargos.map((cargo) => (
-              <tr key={cargo.id}>
-                <td>{cargo.nome}</td>
-                <td>{(cargo.authorities || []).join(', ')}</td>
-                <td>{cargo.ativo ? 'sim' : 'não'}</td>
-                <td>
-                  {cargo.ativo ? <Botao texto="Desativar" variante="fantasma" onClick={() => desativarCargo(cargo)} /> : null}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <table className="tabela">
-          <thead>
-            <tr>
-              <th>Rótulo</th>
-              <th>Função</th>
-              <th>Descrição</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {catalogo.map((item) => (
-              <tr key={item.id}>
-                <td>{item.rotulo}</td>
-                <td>{item.authority}</td>
-                <td>{item.descricao}</td>
-                <td>
-                  <Botao texto="Desativar" variante="fantasma" onClick={() => desativar(item)} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <h2>Auditoria de permissão</h2>
-        <table className="tabela">
-          <thead>
-            <tr>
-              <th>Quando</th>
-              <th>Quem</th>
-              <th>Para quem</th>
-              <th>Restaurante</th>
-              <th>Função</th>
-              <th>Ação</th>
-            </tr>
-          </thead>
-          <tbody>
-            {auditoria.map((item) => (
-              <tr key={item.id}>
-                <td>{item.dataHora}</td>
-                <td>{item.autorId}</td>
-                <td>{item.alvoId}</td>
-                <td>{item.restauranteId}</td>
-                <td>{item.authority}</td>
-                <td>{item.acao}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Tabela
+          linhas={cargos}
+          vazio="Nenhum cargo cadastrado."
+          colunas={[
+            { chave: 'nome', rotulo: 'Cargo' },
+            { chave: 'authorities', rotulo: 'Funções', papel: 'texto', celula: (cargo) => (cargo.authorities || []).map(rotuloFuncao).join(', ') },
+            { chave: 'ativo', rotulo: 'Ativo', celula: (cargo) => (cargo.ativo ? 'sim' : 'não') },
+            { chave: 'acao', rotulo: '', papel: 'acoes', celula: (cargo) => (cargo.ativo ? <Botao texto="Desativar" variante="fantasma" onClick={() => desativarCargo(cargo)} /> : null) },
+          ]}
+        />
+        <Tabela
+          linhas={catalogo}
+          vazio="Nenhuma função no catálogo."
+          colunas={[
+            { chave: 'rotulo', rotulo: 'Rótulo' },
+            { chave: 'authority', rotulo: 'Função', celula: (item) => rotuloFuncao(item.authority) },
+            { chave: 'descricao', rotulo: 'Descrição', papel: 'texto' },
+            { chave: 'acao', rotulo: '', papel: 'acoes', celula: (item) => <Botao texto="Desativar" variante="fantasma" onClick={() => desativar(item)} /> },
+          ]}
+        />
+        <Titulo nivel={2} texto="Auditoria de permissão" />
+        <Tabela
+          linhas={auditoria}
+          vazio="Nenhum registro de auditoria."
+          colunas={[
+            { chave: 'dataHora', rotulo: 'Quando' },
+            { chave: 'autorId', rotulo: 'Quem' },
+            { chave: 'alvoId', rotulo: 'Para quem' },
+            { chave: 'restauranteId', rotulo: 'Restaurante' },
+            { chave: 'authority', rotulo: 'Função', celula: (item) => rotuloFuncao(item.authority) },
+            { chave: 'acao', rotulo: 'Ação' },
+          ]}
+        />
       </div>
     </TemplateAutenticado>
   )

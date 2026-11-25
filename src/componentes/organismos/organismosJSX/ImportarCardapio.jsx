@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react'
+import Titulo from '../../atomos/atomosJSX/Titulo'
+import Tabela from '../../moleculas/moleculasJSX/Tabela'
 import Botao from '../../atomos/atomosJSX/Botao'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import MensagemSucesso from '../../atomos/atomosJSX/MensagemSucesso'
@@ -118,7 +120,7 @@ function ImportarCardapio({ aoConcluir }) {
 
   return (
     <section className="pagina__painel">
-      <h2>Importar cardápio</h2>
+      <Titulo nivel={2} texto="Importar cardápio" />
       <p>Colunas fixas: categoria, nome, preco e custo. A segunda linha do modelo é um exemplo.</p>
       <MensagemErro texto={erro} />
       <MensagemSucesso texto={sucesso} />
@@ -165,34 +167,18 @@ function ImportarCardapio({ aoConcluir }) {
               {' '}Importar só as linhas válidas
             </label>
           </div>
-          <div className="tabela-rolagem">
-            <table className="tabela">
-              <thead>
-                <tr>
-                  <th>Linha</th>
-                  <th>Categoria</th>
-                  <th>Nome</th>
-                  <th>Situação</th>
-                  <th>Preço</th>
-                  <th>Custo</th>
-                  <th>Aviso</th>
-                </tr>
-              </thead>
-              <tbody>
-                {previa.linhas.map((linha) => (
-                  <tr key={linha.numero}>
-                    <td>{linha.numero}</td>
-                    <td>{linha.categoria}</td>
-                    <td>{linha.nome}</td>
-                    <td>{textoSituacao(linha)}</td>
-                    <td>{linha.situacao === 'ATUALIZAR' ? diferenca(linha.precoAnterior, linha.preco) : formatarMoeda(linha.preco)}</td>
-                    <td>{linha.situacao === 'ATUALIZAR' ? diferenca(linha.custoAnterior, linha.custo) : formatarMoeda(linha.custo)}</td>
-                    <td>{linha.mensagens.join(' ')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Tabela
+            linhas={previa.linhas.map((linha) => ({ ...linha, id: linha.numero }))}
+            colunas={[
+              { chave: 'numero', rotulo: 'Linha', papel: 'numero', largura: '8%' },
+              { chave: 'categoria', rotulo: 'Categoria', largura: '14%' },
+              { chave: 'nome', rotulo: 'Nome', largura: '16%' },
+              { chave: 'situacao', rotulo: 'Situação', largura: '14%', celula: (linha) => textoSituacao(linha) },
+              { chave: 'preco', rotulo: 'Preço', papel: 'numero', largura: '12%', celula: (linha) => (linha.situacao === 'ATUALIZAR' ? diferenca(linha.precoAnterior, linha.preco) : formatarMoeda(linha.preco)) },
+              { chave: 'custo', rotulo: 'Custo', papel: 'numero', largura: '12%', celula: (linha) => (linha.situacao === 'ATUALIZAR' ? diferenca(linha.custoAnterior, linha.custo) : formatarMoeda(linha.custo)) },
+              { chave: 'mensagens', rotulo: 'Aviso', papel: 'texto', largura: '24%', celula: (linha) => linha.mensagens.join(' ') },
+            ]}
+          />
           <div className="formulario__acoes">
             <Botao texto="Confirmar importação" onClick={confirmar} desabilitado={!podeConfirmar} />
             <Botao texto="Cancelar importação" variante="secundario" onClick={cancelar} desabilitado={enviando} />

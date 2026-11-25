@@ -21,6 +21,7 @@ import { formatarBooleano } from '../../../utils/formatacao'
 import Texto from '../../atomos/atomosJSX/Texto'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import LegendaMetodo from '../../moleculas/moleculasJSX/LegendaMetodo'
+import Tabela from '../../moleculas/moleculasJSX/Tabela'
 import Paginacao from '../../moleculas/moleculasJSX/Paginacao'
 import '../organismosCSS/ListaRecurso.css'
 
@@ -95,34 +96,17 @@ function ListaRecurso({
       <LegendaMetodo metodo="GET" caminho={`${caminho}?page&size&sort`} />
       {carregando ? <Texto variante="dica">Carregando página...</Texto> : null}
       <MensagemErro texto={erro} />
-      <div className="lista-recurso__tabela-wrap">
-        <table className="lista-recurso__tabela">
-          <thead>
-            <tr>
-              {colunas.map((coluna) => (
-                <th key={coluna.chave}>{coluna.rotulo}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {linhas.length === 0 ? (
-              <tr>
-                <td colSpan={colunas.length}>Nenhum registro nesta página.</td>
-              </tr>
-            ) : linhas.map((linha, indice) => (
-              <tr key={linha.id ?? indice}>
-                {colunas.map((coluna) => (
-                  <td key={coluna.chave}>
-                    {coluna.formatar
-                      ? coluna.formatar(linha[coluna.chave], linha)
-                      : textoCelula(linha[coluna.chave])}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Tabela
+        linhas={linhas}
+        vazio="Nenhum registro nesta página."
+        colunas={colunas.map((coluna) => ({
+          chave: coluna.chave,
+          rotulo: coluna.rotulo,
+          celula: (linha) => (coluna.formatar
+            ? coluna.formatar(linha[coluna.chave], linha)
+            : textoCelula(linha[coluna.chave])),
+        }))}
+      />
       {ehPagina ? (
         <Paginacao
           pagina={dados.pagina ?? pagina}

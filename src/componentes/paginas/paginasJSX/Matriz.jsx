@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import TemplateAutenticado from '../../templates/templatesJSX/TemplateAutenticado'
 import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
+import CartaoMetrica from '../../moleculas/moleculasJSX/CartaoMetrica'
 import FormField from '../../moleculas/moleculasJSX/FormField'
-import Select from '../../atomos/atomosJSX/Select'
+import FormFieldSelect from '../../moleculas/moleculasJSX/FormFieldSelect'
+import Tabela from '../../moleculas/moleculasJSX/Tabela'
+import Titulo from '../../atomos/atomosJSX/Titulo'
+import Checkbox from '../../atomos/atomosJSX/Checkbox'
 import Botao from '../../atomos/atomosJSX/Botao'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import GraficoCurvaAbc from '../../organismos/organismosJSX/GraficoCurvaAbc'
@@ -86,10 +90,9 @@ function Matriz() {
         />
         <MensagemErro texto={erro} />
         <form className="formulario pagina__painel" onSubmit={consultar}>
-          <div className="form-field">
-            <label className="label" htmlFor="restaurante">Restaurante</label>
-            <Select
+          <FormFieldSelect
             id="restaurante"
+            rotulo="Restaurante"
             valor={restauranteId}
             onChange={setRestauranteId}
             opcoes={[
@@ -99,21 +102,13 @@ function Matriz() {
                 rotulo: rotuloRestaurante(restaurante),
               })),
             ]}
-            />
-          </div>
+          />
           <div className="formulario__linha">
             <FormField id="de" rotulo="De" tipo="date" valor={de} onChange={setDe} obrigatorio />
             <FormField id="ate" rotulo="Até" tipo="date" valor={ate} onChange={setAte} obrigatorio />
           </div>
           <div className="formulario__acoes">
-            <label className="formulario__opcao">
-              <input
-                type="checkbox"
-                checked={mostrarFaixas}
-                onChange={(evento) => setMostrarFaixas(evento.target.checked)}
-              />
-              Colorir o gráfico por faixa
-            </label>
+            <Checkbox id="faixas-matriz" texto="Colorir o gráfico por faixa" marcado={mostrarFaixas} onChange={setMostrarFaixas} />
             <Botao texto="Calcular" tipo="submit" />
           </div>
         </form>
@@ -121,29 +116,14 @@ function Matriz() {
         {curva ? (
           <>
             <div className="cartoes">
-              <section className="pagina__painel cartao">
-                <span>Faturamento</span>
-                <strong>{formatarMoeda(curva.faturamento)}</strong>
-              </section>
-              <section className="pagina__painel cartao">
-                <span>Custo bruto</span>
-                <strong>{formatarMoeda(curva.custoBruto)}</strong>
-              </section>
-              <section className="pagina__painel cartao">
-                <span>Lucro bruto</span>
-                <strong>{formatarMoeda(curva.lucroBruto)}</strong>
-              </section>
-              <section className="pagina__painel cartao">
-                <span>Margem</span>
-                <strong>{formatarPercentual(curva.margemPercentual)}</strong>
-              </section>
-              <section className="pagina__painel cartao">
-                <span>Produtos por faixa</span>
-                <strong>A {contarFaixa(curva.itens, 'A')} · B {contarFaixa(curva.itens, 'B')} · C {contarFaixa(curva.itens, 'C')}</strong>
-              </section>
+              <CartaoMetrica rotulo="Faturamento" valor={formatarMoeda(curva.faturamento)} />
+              <CartaoMetrica rotulo="Custo bruto" valor={formatarMoeda(curva.custoBruto)} />
+              <CartaoMetrica rotulo="Lucro bruto" valor={formatarMoeda(curva.lucroBruto)} />
+              <CartaoMetrica rotulo="Margem" valor={formatarPercentual(curva.margemPercentual)} />
+              <CartaoMetrica rotulo="Produtos por faixa" valor={`A ${contarFaixa(curva.itens, 'A')} · B ${contarFaixa(curva.itens, 'B')} · C ${contarFaixa(curva.itens, 'C')}`} />
             </div>
             <section className="pagina__painel">
-              <h2>Curva ABC por produto</h2>
+              <Titulo nivel={2} texto="Curva ABC por produto" />
               <p>A faixa diz quanto o produto pesa no lucro. A classe diz que tipo de produto ele é.</p>
               {curva.coberturaDeCusto != null ? (
                 <p>margem calculada sobre {formatarPercentual(curva.coberturaDeCusto)} do faturamento</p>
@@ -155,67 +135,38 @@ function Matriz() {
                 </p>
               ) : null}
               <GraficoCurvaAbc itens={curva.itens} mostrarFaixas={mostrarFaixas} />
-              <div className="tabela-rolagem">
-                <table className="tabela">
-                  <thead>
-                    <tr>
-                      <th>Produto</th>
-                      <th>Qtd. vendida</th>
-                      <th>Lucro</th>
-                      <th>Custo bruto</th>
-                      <th>Participação</th>
-                      <th>Acumulado</th>
-                      <th>Margem</th>
-                      <th>Faixa</th>
-                      <th>Classe K&S</th>
-                      <th>Variação do lucro</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {curva.itens.map((item) => (
-                      <tr key={item.id}>
-                        <td>{item.nome}{item.dadoIncompleto ? ' (dado incompleto)' : ''}</td>
-                        <td>{item.quantidade ?? '—'}</td>
-                        <td>{formatarMoeda(item.lucro)}</td>
-                        <td>{formatarMoeda(item.custoBruto)}</td>
-                        <td>{formatarPercentual(item.participacao)}</td>
-                        <td>{formatarPercentual(item.acumulado)}</td>
-                        <td>{formatarPercentual(item.margemPercentual)}</td>
-                        <td>{item.faixa}</td>
-                        <td>{item.classe ? <span className={`selo selo--${item.classe}`}>{rotuloClasse(item.classe)}</span> : '—'}</td>
-                        <td>{textoVariacao(item)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Tabela
+                classe="tabela--analise"
+                linhas={curva.itens}
+                colunas={[
+                  { chave: 'nome', rotulo: 'Produto', largura: '16%', celula: (item) => `${item.nome}${item.dadoIncompleto ? ' (dado incompleto)' : ''}` },
+                  { chave: 'quantidade', rotulo: 'Qtd. vendida', papel: 'numero', largura: '8%', celula: (item) => item.quantidade ?? '—' },
+                  { chave: 'lucro', rotulo: 'Lucro', papel: 'numero', largura: '9%', celula: (item) => formatarMoeda(item.lucro) },
+                  { chave: 'custo', rotulo: 'Custo bruto', papel: 'numero', largura: '10%', celula: (item) => formatarMoeda(item.custoBruto) },
+                  { chave: 'participacao', rotulo: 'Participação', papel: 'numero', largura: '9%', celula: (item) => formatarPercentual(item.participacao) },
+                  { chave: 'acumulado', rotulo: 'Acumulado', papel: 'numero', largura: '9%', celula: (item) => formatarPercentual(item.acumulado) },
+                  { chave: 'margem', rotulo: 'Margem', papel: 'numero', largura: '8%', celula: (item) => formatarPercentual(item.margemPercentual) },
+                  { chave: 'faixa', rotulo: 'Faixa', largura: '6%', celula: (item) => item.faixa },
+                  { chave: 'classe', rotulo: 'Classe K&S', papel: 'classe', largura: '10%', celula: (item) => (item.classe ? <span className={`selo selo--${item.classe}`}>{rotuloClasse(item.classe)}</span> : '—') },
+                  { chave: 'variacao', rotulo: 'Variação do lucro', papel: 'texto', largura: '15%', celula: (item) => textoVariacao(item) },
+                ]}
+              />
             </section>
           </>
         ) : null}
         {curva ? (
           <section className="pagina__painel">
-            <h2>Gestores e usuários</h2>
-            <table className="tabela">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>E-mail</th>
-                  <th>Perfil</th>
-                  <th>Ativo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {equipe.map((pessoa) => (
-                  <tr key={pessoa.id}>
-                    <td>{pessoa.nome}</td>
-                    <td>{pessoa.email}</td>
-                    <td>{rotuloPerfil(pessoa.perfil)}</td>
-                    <td>{formatarBooleano(pessoa.ativo)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {equipe.length === 0 ? <p>Ninguém cadastrado neste restaurante.</p> : null}
+            <Titulo nivel={2} texto="Gestores e usuários" />
+            <Tabela
+              linhas={equipe}
+              vazio="Ninguém cadastrado neste restaurante."
+              colunas={[
+                { chave: 'nome', rotulo: 'Nome' },
+                { chave: 'email', rotulo: 'E-mail' },
+                { chave: 'perfil', rotulo: 'Perfil', celula: (pessoa) => rotuloPerfil(pessoa.perfil) },
+                { chave: 'ativo', rotulo: 'Ativo', celula: (pessoa) => formatarBooleano(pessoa.ativo) },
+              ]}
+            />
           </section>
         ) : null}
       </div>

@@ -4,6 +4,7 @@ import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import FormField from '../../moleculas/moleculasJSX/FormField'
 import Botao from '../../atomos/atomosJSX/Botao'
 import AlternarTema from '../../atomos/atomosJSX/AlternarTema'
+import Titulo from '../../atomos/atomosJSX/Titulo'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
@@ -76,7 +77,7 @@ function Perfil() {
           </div>
         </section>
         <form className="formulario pagina__painel" onSubmit={trocar}>
-          <h2>Trocar senha</h2>
+          <Titulo nivel={2} texto="Trocar senha" />
           <FormField id="senha-atual" rotulo="Senha atual" tipo="password" valor={senhaAtual} onChange={setSenhaAtual} obrigatorio />
           <FormField id="senha-nova" rotulo="Nova senha" tipo="password" valor={senhaNova} onChange={setSenhaNova} dica={DICA_SENHA} obrigatorio />
           <FormField id="senha-confirma" rotulo="Confirmar nova senha" tipo="password" valor={confirmacao} onChange={setConfirmacao} obrigatorio />

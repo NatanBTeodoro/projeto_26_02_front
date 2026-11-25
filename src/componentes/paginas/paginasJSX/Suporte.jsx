@@ -3,8 +3,9 @@ import TemplateAutenticado from '../../templates/templatesJSX/TemplateAutenticad
 import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import FormField from '../../moleculas/moleculasJSX/FormField'
 import FormFieldTextarea from '../../moleculas/moleculasJSX/FormFieldTextarea'
-import Select from '../../atomos/atomosJSX/Select'
+import FormFieldSelect from '../../moleculas/moleculasJSX/FormFieldSelect'
 import Botao from '../../atomos/atomosJSX/Botao'
+import Titulo from '../../atomos/atomosJSX/Titulo'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import MensagemSucesso from '../../atomos/atomosJSX/MensagemSucesso'
 import { apiBlob, apiFormulario, apiJson } from '../../../services/api'
@@ -153,10 +154,7 @@ function Suporte() {
         <MensagemSucesso texto={sucesso} />
         <form className="formulario pagina__painel" onSubmit={enviar}>
           {gestor ? (
-            <div>
-              <label htmlFor="assunto">Assunto</label>
-              <Select id="assunto" valor={assunto} onChange={setAssunto} opcoes={ASSUNTOS_GESTOR} />
-            </div>
+            <FormFieldSelect id="assunto" rotulo="Assunto" valor={assunto} onChange={setAssunto} opcoes={ASSUNTOS_GESTOR} />
           ) : (
             <FormField id="assunto" rotulo="Assunto" valor={assunto} onChange={setAssunto} obrigatorio />
           )}
@@ -173,7 +171,7 @@ function Suporte() {
           <Botao texto="Enviar reclamação" tipo="submit" />
         </form>
         <section className="pagina__painel">
-          <h2>Minhas reclamações</h2>
+          <Titulo nivel={2} texto="Minhas reclamações" />
           {historico.length === 0 ? <p>Nenhuma reclamação enviada.</p> : null}
           {historico.map((item) => (
             <article key={item.id} className="cardapio__item">
@@ -195,7 +193,7 @@ function Suporte() {
         </section>
         {gestor ? null : (
           <section className="pagina__painel">
-            <h2>Reclamações dos gestores</h2>
+            <Titulo nivel={2} texto="Reclamações dos gestores" />
             {recebidas.length === 0 ? <p>Nenhuma reclamação recebida.</p> : null}
             {recebidas.map((item) => {
               const rascunho = rascunhos[item.id] || { status: item.status, resposta: item.resposta || '' }
@@ -213,9 +211,9 @@ function Suporte() {
                   {item.anexoNome ? (
                     <Botao texto={item.anexoNome} variante="fantasma" onClick={() => baixar(item)} />
                   ) : null}
-                  <label htmlFor={`status-${item.id}`}>Status</label>
-                  <Select
+                  <FormFieldSelect
                     id={`status-${item.id}`}
+                    rotulo="Status"
                     valor={rascunho.status}
                     onChange={(valor) => alterar(item.id, 'status', valor)}
                     opcoes={STATUS}

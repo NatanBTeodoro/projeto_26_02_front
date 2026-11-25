@@ -116,6 +116,60 @@ export function formatarBooleano(valor) {
   return '—'
 }
 
+const ROTULOS_FUNCAO = {
+  EQUIPE_LER: 'Ver equipe',
+  EQUIPE_USUARIO_GERIR: 'Gerir usuários',
+  EQUIPE_GESTOR_GERIR: 'Gerir gestores',
+  EQUIPE_SENHA_REDEFINIR: 'Redefinir senha',
+  EQUIPE_FUNCAO_ATRIBUIR: 'Atribuir função',
+  CARDAPIO_LER: 'Ver cardápio',
+  CARDAPIO_ESCREVER: 'Editar cardápio',
+  CUSTO_LER: 'Ver custo',
+  COMANDA_LER: 'Ver comandas',
+  COMANDA_ABRIR: 'Abrir comanda',
+  COMANDA_FECHAR: 'Fechar comanda',
+  PEDIDO_LER: 'Ver pedidos',
+  PEDIDO_LANCAR: 'Lançar pedido',
+  PEDIDO_EDITAR: 'Editar pedido',
+  PEDIDO_CANCELAR: 'Cancelar pedido',
+  PEDIDO_ESTORNAR: 'Estornar pedido',
+  PEDIDO_ESTORNAR_PAGO: 'Estornar pedido pago',
+  ANALISE_VER_OPERACIONAL: 'Ver análise operacional',
+  ANALISE_VER_FINANCEIRO: 'Ver análise financeira',
+  CATALOGO_FUNCOES_GERIR: 'Gerir catálogo de funções',
+  RECLAMACAO_ABRIR: 'Abrir reclamação',
+  RECLAMACAO_LER: 'Ver reclamações',
+  RECLAMACAO_RESPONDER: 'Responder reclamação',
+  AUDITORIA_VER: 'Ver auditoria',
+  PLATAFORMA_TI_GERIR: 'Gerir contas de TI',
+  PLATAFORMA_ADMIN_GERIR: 'Gerir administradores',
+}
+
+const GRUPOS_FUNCAO = [
+  ['Equipe', ['EQUIPE_LER', 'EQUIPE_USUARIO_GERIR', 'EQUIPE_GESTOR_GERIR', 'EQUIPE_SENHA_REDEFINIR', 'EQUIPE_FUNCAO_ATRIBUIR']],
+  ['Cardápio', ['CARDAPIO_LER', 'CARDAPIO_ESCREVER', 'CUSTO_LER']],
+  ['Comanda', ['COMANDA_LER', 'COMANDA_ABRIR', 'COMANDA_FECHAR']],
+  ['Pedido', ['PEDIDO_LER', 'PEDIDO_LANCAR', 'PEDIDO_EDITAR', 'PEDIDO_CANCELAR', 'PEDIDO_ESTORNAR', 'PEDIDO_ESTORNAR_PAGO']],
+  ['Análise', ['ANALISE_VER_OPERACIONAL', 'ANALISE_VER_FINANCEIRO']],
+  ['Reclamação', ['RECLAMACAO_ABRIR', 'RECLAMACAO_LER', 'RECLAMACAO_RESPONDER']],
+  ['Rede', ['CATALOGO_FUNCOES_GERIR', 'AUDITORIA_VER', 'PLATAFORMA_TI_GERIR', 'PLATAFORMA_ADMIN_GERIR']],
+]
+
+export function rotuloFuncao(authority) {
+  return ROTULOS_FUNCAO[authority] || authority || '—'
+}
+
+export function agruparFuncoes(authorities) {
+  const restantes = new Set(authorities || [])
+  const grupos = GRUPOS_FUNCAO.map(([titulo, itens]) => {
+    const presentes = itens.filter((item) => restantes.has(item))
+    presentes.forEach((item) => restantes.delete(item))
+    return [titulo, presentes]
+  }).filter(([, itens]) => itens.length > 0)
+  if (restantes.size > 0) grupos.push(['Outras', [...restantes]])
+  return grupos
+}
+
 export function rotuloClasse(classe) {
   return ROTULOS_CLASSE[classe] || classe || '—'
 }

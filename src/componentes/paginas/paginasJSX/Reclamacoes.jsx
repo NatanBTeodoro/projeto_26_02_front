@@ -3,7 +3,7 @@ import TemplateAutenticado from '../../templates/templatesJSX/TemplateAutenticad
 import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import FormField from '../../moleculas/moleculasJSX/FormField'
 import FormFieldTextarea from '../../moleculas/moleculasJSX/FormFieldTextarea'
-import Select from '../../atomos/atomosJSX/Select'
+import FormFieldSelect from '../../moleculas/moleculasJSX/FormFieldSelect'
 import Botao from '../../atomos/atomosJSX/Botao'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import MensagemSucesso from '../../atomos/atomosJSX/MensagemSucesso'
@@ -115,10 +115,7 @@ function Reclamacoes() {
         <MensagemSucesso texto={sucesso} />
         <form className="formulario pagina__painel" onSubmit={filtrar}>
           <div className="formulario__linha">
-            <div>
-              <label htmlFor="filtro-status">Status</label>
-              <Select id="filtro-status" valor={status} onChange={setStatus} opcoes={STATUS} />
-            </div>
+            <FormFieldSelect id="filtro-status" rotulo="Status" valor={status} onChange={setStatus} opcoes={STATUS} />
             <FormField id="filtro-de" rotulo="De" tipo="date" valor={de} onChange={setDe} />
             <FormField id="filtro-ate" rotulo="Até" tipo="date" valor={ate} onChange={setAte} />
           </div>
@@ -144,9 +141,9 @@ function Reclamacoes() {
               {item.anexoNome ? (
                 <Botao texto={item.anexoNome} variante="fantasma" onClick={() => baixar(item)} />
               ) : null}
-              <label htmlFor={`status-${item.id}`}>Status</label>
-              <Select
+              <FormFieldSelect
                 id={`status-${item.id}`}
+                rotulo="Status"
                 valor={rascunho.status}
                 onChange={(valor) => alterar(item.id, 'status', valor)}
                 opcoes={STATUS.filter((opcao) => opcao.valor)}

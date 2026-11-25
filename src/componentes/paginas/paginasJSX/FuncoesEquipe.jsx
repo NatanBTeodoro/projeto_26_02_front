@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react'
 import Botao from '../../atomos/atomosJSX/Botao'
+import Checkbox from '../../atomos/atomosJSX/Checkbox'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
+import Painel from '../../moleculas/moleculasJSX/Painel'
+import ListaFuncoes from '../../moleculas/moleculasJSX/ListaFuncoes'
+import Titulo from '../../atomos/atomosJSX/Titulo'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
+import { rotuloFuncao } from '../../../utils/formatacao'
 
 const BLOQUEADAS_GESTOR = [
   'EQUIPE_GESTOR_GERIR',
@@ -72,8 +77,7 @@ export function PainelFuncoes({ usuario, minhas, gestor, onFechar }) {
   const nomes = Object.fromEntries(cargos.map((cargo) => [cargo.id, cargo.nome]))
 
   return (
-    <section className="pagina__painel">
-      <h2>Funções de {usuario.nome}</h2>
+    <Painel titulo={`Funções de ${usuario.nome}`}>
       <p>
         Vínculo {usuario.perfil}
         {usuario.restauranteNome ? ` · ${usuario.restauranteNome}` : ''}
@@ -82,40 +86,40 @@ export function PainelFuncoes({ usuario, minhas, gestor, onFechar }) {
       <ul>
         {atuais.filter((linha) => linha.cargoOrigemId != null).map((linha) => (
           <li key={`cargo-${linha.authority}`}>
-            {linha.authority} · cargo {nomes[linha.cargoOrigemId] || linha.cargoOrigemId}
+            {rotuloFuncao(linha.authority)} · cargo {nomes[linha.cargoOrigemId] || linha.cargoOrigemId}
             {linha.atribuidoPor ? ` · por ${linha.atribuidoPor}` : ''}
             {linha.atribuidoEm ? ` · ${linha.atribuidoEm}` : ''}
           </li>
         ))}
         {atuais.filter((linha) => linha.cargoOrigemId == null).map((linha) => (
           <li key={`avulsa-${linha.authority}`}>
-            {linha.authority} · avulsa
+            {rotuloFuncao(linha.authority)} · avulsa
             {linha.atribuidoPor ? ` · por ${linha.atribuidoPor}` : ''}
             {linha.atribuidoEm ? ` · ${linha.atribuidoEm}` : ''}
           </li>
         ))}
       </ul>
       <form onSubmit={salvar}>
-        <h3>Cargos</h3>
+        <Titulo nivel={3} texto="Cargos" />
         {cargos.length === 0 ? <p>Nenhum cargo que você possa atribuir.</p> : null}
         {cargos.map((cargo) => (
-          <label key={cargo.id}>
-            <input type="checkbox" checked={cargosMarcados.includes(cargo.id)} onChange={() => alternarCargo(cargo.id)} />
-            {cargo.nome}
-          </label>
+          <Checkbox
+            key={cargo.id}
+            id={`cargo-${cargo.id}`}
+            texto={cargo.nome}
+            marcado={cargosMarcados.includes(cargo.id)}
+            onChange={() => alternarCargo(cargo.id)}
+          />
         ))}
-        <button type="button" onClick={() => setAvancado((valor) => !valor)}>Avançado</button>
-        {avancado ? opcoes.map((authority) => (
-          <label key={authority}>
-            <input type="checkbox" checked={avulsas.includes(authority)} onChange={() => alternarAvulsa(authority)} />
-            {authority}
-          </label>
-        )) : null}
+        <Botao texto={avancado ? 'Ocultar funções avulsas' : 'Funções avulsas'} variante="fantasma" onClick={() => setAvancado((valor) => !valor)} />
+        {avancado ? (
+          <ListaFuncoes authorities={opcoes} marcadas={avulsas} onAlternar={alternarAvulsa} idPrefixo={`equipe-${usuario.id}`} />
+        ) : null}
         <div className="formulario__acoes">
           <Botao texto="Salvar funções" tipo="submit" />
           <Botao texto="Fechar" variante="fantasma" onClick={onFechar} />
         </div>
       </form>
-    </section>
+    </Painel>
   )
 }

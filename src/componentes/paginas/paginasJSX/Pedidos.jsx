@@ -3,9 +3,10 @@ import { Navigate } from 'react-router-dom'
 import TemplateAutenticado from '../../templates/templatesJSX/TemplateAutenticado'
 import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import FormField from '../../moleculas/moleculasJSX/FormField'
-import Select from '../../atomos/atomosJSX/Select'
+import FormFieldSelect from '../../moleculas/moleculasJSX/FormFieldSelect'
+import CartaoMetrica from '../../moleculas/moleculasJSX/CartaoMetrica'
+import Titulo from '../../atomos/atomosJSX/Titulo'
 import Botao from '../../atomos/atomosJSX/Botao'
-import Label from '../../atomos/atomosJSX/Label'
 import Badge from '../../atomos/atomosJSX/Badge'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import CartaoPedido from '../../moleculas/moleculasJSX/CartaoPedido'
@@ -112,9 +113,9 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item',
         </div>
       ) : (
         <>
-          <label htmlFor={`${prefixo}-categoria`}>Categoria</label>
-          <Select
+          <FormFieldSelect
             id={`${prefixo}-categoria`}
+            rotulo="Categoria"
             valor={categoriaId}
             onChange={(valor) => { setCategoriaId(valor); setProdutoId('') }}
             opcoes={[
@@ -157,23 +158,21 @@ function SeletorItens({ categorias, produtos, itens, setItens, prefixo = 'item',
         </>
       ) : (
         <div className="formulario__linha">
-          <div>
-            <label htmlFor={`${prefixo}-produto`}>Produto</label>
-            <Select
-              id={`${prefixo}-produto`}
-              valor={produtoId}
-              onChange={setProdutoId}
-              opcoes={[
-                { valor: '', rotulo: 'Selecione' },
-                ...produtosVisiveis.map((produto) => ({ valor: String(produto.id), rotulo: produto.nome })),
-              ]}
-            />
-          </div>
+          <FormFieldSelect
+            id={`${prefixo}-produto`}
+            rotulo="Produto"
+            valor={produtoId}
+            onChange={setProdutoId}
+            opcoes={[
+              { valor: '', rotulo: 'Selecione' },
+              ...produtosVisiveis.map((produto) => ({ valor: String(produto.id), rotulo: produto.nome })),
+            ]}
+          />
           <FormField id={`${prefixo}-quantidade`} rotulo="Quantidade" tipo="number" valor={quantidade} onChange={setQuantidade} />
         </div>
       )}
       {comValores ? null : <Botao texto="Adicionar item" variante="secundario" onClick={incluir} />}
-      <h3>Itens do pedido</h3>
+      <Titulo nivel={3} texto="Itens do pedido" />
       {itens.length === 0 ? <p>Nenhum item adicionado.</p> : null}
       <ul className="rascunho">
         {itens.map((item) => (
@@ -248,7 +247,7 @@ function GradeMesas({ pedidos, comandas = [], mesaSelecionada = '', onSelecionar
 
   return (
     <section className="pagina__painel">
-      <h2>Mesas</h2>
+      <Titulo nivel={2} texto="Mesas" />
       {mesas.length === 0 ? <p>Nenhuma mesa ocupada.</p> : null}
       <div className="grade-mesas">
         {visiveis.map((mesa) => {
@@ -475,9 +474,9 @@ function PedidosUsuario() {
           <div className="formulario__acoes">
             <Botao texto="Abrir comanda" onClick={abrirComanda} />
           </div>
-          <label htmlFor="comanda">Comanda</label>
-          <Select
+          <FormFieldSelect
             id="comanda"
+            rotulo="Comanda"
             valor={comandaId}
             onChange={(valor) => {
               setComandaId(valor)
@@ -510,7 +509,7 @@ function PedidosUsuario() {
           <SeletorItens categorias={categorias} produtos={produtos} itens={itens} setItens={setItens} comValores />
         </form>
         <section className="pagina__painel">
-          <h2>Pedidos desta comanda</h2>
+          <Titulo nivel={2} texto="Pedidos desta comanda" />
           {daComanda.length === 0 ? <p>Nenhum pedido ativo nesta comanda.</p> : null}
           {daComanda.map((pedido) => <CartaoPedido key={pedido.id} pedido={pedido} />)}
           {totalSelecionado != null ? (
@@ -518,7 +517,7 @@ function PedidosUsuario() {
           ) : null}
         </section>
         <section className="pagina__painel">
-          <h2>Histórico</h2>
+          <Titulo nivel={2} texto="Histórico" />
           <p>Pedidos pagos, cancelados e estornados. A mesa desses pedidos já foi liberada.</p>
           {historico.length === 0 ? <p>Nenhum pedido no histórico.</p> : null}
           {historico.map((pedido) => <CartaoPedido key={pedido.id} pedido={pedido} />)}
@@ -835,9 +834,9 @@ function PedidosGestor() {
         {bloqueado ? <p>Restaurante fechado ou inativo: os pedidos podem ser consultados, mas não alterados.</p> : null}
         {mostrarFormulario && !bloqueado ? (
           <form className="formulario pagina__painel" onSubmit={salvar}>
-            <label htmlFor="usuario">Usuário</label>
-            <Select
+            <FormFieldSelect
               id="usuario"
+              rotulo="Usuário"
               valor={usuarioId}
               onChange={setUsuarioId}
               opcoes={[
@@ -845,9 +844,9 @@ function PedidosGestor() {
                 ...usuarios.map((usuario) => ({ valor: String(usuario.id), rotulo: usuario.nome })),
               ]}
             />
-            <label htmlFor="comanda-usuario">Comanda</label>
-            <Select
+            <FormFieldSelect
               id="comanda-usuario"
+              rotulo="Comanda"
               valor={comandaId}
               onChange={(valor) => {
                 setComandaId(valor)
@@ -867,26 +866,14 @@ function PedidosGestor() {
           </form>
         ) : null}
         <section className="cartoes pedidos-metricas">
-          <article className="pagina__painel metrica">
-            <strong>{pedidos.length}</strong>
-            <span>Total de pedidos</span>
-          </article>
-          <article className="pagina__painel metrica">
-            <strong>{comandasAbertas}</strong>
-            <span>Comandas abertas</span>
-          </article>
-          <article className="pagina__painel metrica">
-            <strong>{mesasOcupadas}</strong>
-            <span>Mesas ocupadas</span>
-          </article>
-          <article className="pagina__painel metrica">
-            <strong>{itensVendidos}</strong>
-            <span>Itens vendidos (pagos)</span>
-          </article>
+          <CartaoMetrica rotulo="Total de pedidos" valor={pedidos.length} />
+          <CartaoMetrica rotulo="Comandas abertas" valor={comandasAbertas} />
+          <CartaoMetrica rotulo="Mesas ocupadas" valor={mesasOcupadas} />
+          <CartaoMetrica rotulo="Itens vendidos (pagos)" valor={itensVendidos} />
         </section>
         {abertas.length ? (
           <section className="pagina__painel comandas-fechar">
-            <h2>Comandas abertas</h2>
+            <Titulo nivel={2} texto="Comandas abertas" />
             <p>Fechar a comanda marca os pedidos ativos como pagos. Pedidos ainda abertos não entram nas análises.</p>
             <ul>
               {abertas.map((comanda) => {
@@ -919,55 +906,47 @@ function PedidosGestor() {
         <section className="pagina__painel lista-pedidos">
           <div className="filtros-pedidos">
             <FormField id="busca-pedido" rotulo="Busca" valor={busca} onChange={setBusca} placeholder="Cliente ou item" />
-            <div className="form-field">
-              <Label htmlFor="filtro-mesa" texto="Mesa" />
-              <Select
-                id="filtro-mesa"
-                valor={mesaFiltro}
-                onChange={setMesaFiltro}
-                opcoes={[{ valor: '', rotulo: 'Todas' }, ...mesasOpcoes.map((valor) => ({ valor: String(valor), rotulo: `Mesa ${valor}` }))]}
-              />
-            </div>
-            <div className="form-field">
-              <Label htmlFor="filtro-comanda" texto="Comanda" />
-              <Select
-                id="filtro-comanda"
-                valor={comandaFiltro}
-                onChange={setComandaFiltro}
-                opcoes={[{ valor: '', rotulo: 'Todas' }, ...comandasOpcoes.map(([id, rotulo]) => ({ valor: String(id), rotulo }))]}
-              />
-            </div>
-            <div className="form-field">
-              <Label htmlFor="filtro-status" texto="Status" />
-              <Select
-                id="filtro-status"
-                valor={statusFiltro}
-                onChange={setStatusFiltro}
-                opcoes={[
-                  { valor: '', rotulo: 'Todos' },
-                  { valor: 'ATIVO', rotulo: 'Ativo' },
-                  { valor: 'PAGO', rotulo: 'Pago' },
-                  { valor: 'EDITADO', rotulo: 'Editado' },
-                  { valor: 'ESTORNADO', rotulo: 'Estornado' },
-                  { valor: 'CANCELADO', rotulo: 'Cancelado' },
-                ]}
-              />
-            </div>
-            <div className="form-field">
-              <Label htmlFor="filtro-usuario" texto="Usuário" />
-              <Select
-                id="filtro-usuario"
-                valor={usuarioFiltro}
-                onChange={setUsuarioFiltro}
-                opcoes={[{ valor: '', rotulo: 'Todos' }, ...usuariosOpcoes.map(([id, rotulo]) => ({ valor: String(id), rotulo }))]}
-              />
-            </div>
+            <FormFieldSelect
+              id="filtro-mesa"
+              rotulo="Mesa"
+              valor={mesaFiltro}
+              onChange={setMesaFiltro}
+              opcoes={[{ valor: '', rotulo: 'Todas' }, ...mesasOpcoes.map((valor) => ({ valor: String(valor), rotulo: `Mesa ${valor}` }))]}
+            />
+            <FormFieldSelect
+              id="filtro-comanda"
+              rotulo="Comanda"
+              valor={comandaFiltro}
+              onChange={setComandaFiltro}
+              opcoes={[{ valor: '', rotulo: 'Todas' }, ...comandasOpcoes.map(([id, rotulo]) => ({ valor: String(id), rotulo }))]}
+            />
+            <FormFieldSelect
+              id="filtro-status"
+              rotulo="Status"
+              valor={statusFiltro}
+              onChange={setStatusFiltro}
+              opcoes={[
+                { valor: '', rotulo: 'Todos' },
+                { valor: 'ATIVO', rotulo: 'Ativo' },
+                { valor: 'PAGO', rotulo: 'Pago' },
+                { valor: 'EDITADO', rotulo: 'Editado' },
+                { valor: 'ESTORNADO', rotulo: 'Estornado' },
+                { valor: 'CANCELADO', rotulo: 'Cancelado' },
+              ]}
+            />
+            <FormFieldSelect
+              id="filtro-usuario"
+              rotulo="Usuário"
+              valor={usuarioFiltro}
+              onChange={setUsuarioFiltro}
+              opcoes={[{ valor: '', rotulo: 'Todos' }, ...usuariosOpcoes.map(([id, rotulo]) => ({ valor: String(id), rotulo }))]}
+            />
             <Botao texto="Limpar filtros" variante="fantasma" onClick={limparFiltros} />
           </div>
           {totalSelecionado != null ? (
             <p className="pedido-comanda-total">Total da comanda {formatarMoeda(totalSelecionado)}</p>
           ) : null}
-          <h2>Pedidos ativos</h2>
+          <Titulo nivel={2} texto="Pedidos ativos" />
           {ativosVisiveis.length === 0 ? <p>{haFiltro ? 'Nenhum pedido ativo com esses filtros.' : 'Nenhum pedido ativo.'}</p> : null}
           <LinhasPedido
             pedidos={ativosVisiveis}
@@ -976,7 +955,7 @@ function PedidosGestor() {
             onEstornar={(pedido) => abrirAcao(pedido, 'estorno')}
             onCancelar={(pedido) => abrirAcao(pedido, 'cancelamento')}
           />
-          <h2>Histórico</h2>
+          <Titulo nivel={2} texto="Histórico" />
           <p>Pedidos pagos, cancelados e estornados. A mesa desses pedidos já foi liberada.</p>
           {historicoVisiveis.length === 0 ? <p>{haFiltro ? 'Nenhum pedido no histórico com esses filtros.' : 'Nenhum pedido no histórico.'}</p> : null}
           <LinhasPedido
@@ -991,7 +970,7 @@ function PedidosGestor() {
           <div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
             <button className="modal__velo" type="button" aria-label="Voltar" onClick={() => setModal(null)} />
             <form className="modal__caixa" onSubmit={confirmarModal}>
-              <h2 id="modal-titulo">{modal.tipo === 'estorno' ? 'Estornar pedido' : 'Cancelar pedido'}</h2>
+              <Titulo nivel={2} id="modal-titulo" texto={modal.tipo === 'estorno' ? 'Estornar pedido' : 'Cancelar pedido'} />
               <p>{numeroComanda(pedidoModal)} · Mesa {pedidoModal.mesa ?? '—'} · {pedidoModal.nomeCliente}</p>
               <FormField
                 id="motivo-acao"
@@ -1011,7 +990,7 @@ function PedidosGestor() {
           <div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-edicao">
             <button className="modal__velo" type="button" aria-label="Voltar" onClick={() => setEditando(null)} />
             <form className="modal__caixa modal__caixa--larga" onSubmit={salvarEdicao}>
-              <h2 id="modal-edicao">Editar pedido</h2>
+              <Titulo nivel={2} id="modal-edicao" texto="Editar pedido" />
               <FormField id="mesa-edicao" rotulo="Mesa" tipo="number" valor={mesaEdicao} onChange={setMesaEdicao} obrigatorio />
               <FormField id="cliente-edicao" rotulo="Nome do cliente" valor={clienteEdicao} onChange={setClienteEdicao} obrigatorio />
               <SeletorItens
@@ -1037,7 +1016,7 @@ function PedidosGestor() {
           <div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-fechar">
             <button className="modal__velo" type="button" aria-label="Voltar" onClick={() => setFechando(null)} />
             <form className="modal__caixa" onSubmit={confirmarFechamento}>
-              <h2 id="modal-fechar">Fechar a comanda #{fechando.numero ?? fechando.id}?</h2>
+              <Titulo nivel={2} id="modal-fechar" texto={`Fechar a comanda #${fechando.numero ?? fechando.id}?`} />
               <p>Os pedidos ativos passam a pagos e entram nas análises. A comanda deixa de receber lançamentos.</p>
               <div className="formulario__acoes">
                 <Botao texto="Confirmar" tipo="submit" />

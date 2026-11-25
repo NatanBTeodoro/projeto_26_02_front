@@ -13,8 +13,12 @@ import {
 } from 'recharts'
 import TemplateAutenticado from '../../templates/templatesJSX/TemplateAutenticado'
 import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
+import CartaoMetrica from '../../moleculas/moleculasJSX/CartaoMetrica'
 import FormField from '../../moleculas/moleculasJSX/FormField'
-import Select from '../../atomos/atomosJSX/Select'
+import FormFieldSelect from '../../moleculas/moleculasJSX/FormFieldSelect'
+import Tabela from '../../moleculas/moleculasJSX/Tabela'
+import Titulo from '../../atomos/atomosJSX/Titulo'
+import Checkbox from '../../atomos/atomosJSX/Checkbox'
 import Botao from '../../atomos/atomosJSX/Botao'
 import Badge from '../../atomos/atomosJSX/Badge'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
@@ -63,37 +67,18 @@ function Periodo({ de, ate, setDe, setAte, onSubmit, children }) {
 }
 
 function TabelaCurva({ curva, mostrarFaixas }) {
-  return (
-    <div className="tabela-rolagem">
-      <table className="tabela">
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Lucro</th>
-            <th>Custo bruto</th>
-            <th>Participação</th>
-            <th>Acumulado</th>
-            {mostrarFaixas ? <th>Faixa</th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {(curva?.itens || []).map((item) => (
-            <tr key={item.id}>
-              <td>
-                {item.nome}
-                {item.dadoIncompleto ? ' (dado incompleto)' : ''}
-              </td>
-              <td>{formatarMoeda(item.lucro)}</td>
-              <td>{formatarMoeda(item.custoBruto)}</td>
-              <td>{formatarPercentual(item.participacao)}</td>
-              <td>{formatarPercentual(item.acumulado)}</td>
-              {mostrarFaixas ? <td>{item.faixa}</td> : null}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
+  const colunas = [
+    { chave: 'nome', rotulo: 'Nome', largura: '34%', celula: (item) => `${item.nome}${item.dadoIncompleto ? ' (dado incompleto)' : ''}` },
+    { chave: 'lucro', rotulo: 'Lucro', papel: 'numero', largura: '16%', celula: (item) => formatarMoeda(item.lucro) },
+    { chave: 'custo', rotulo: 'Custo bruto', papel: 'numero', largura: '18%', celula: (item) => formatarMoeda(item.custoBruto) },
+    { chave: 'participacao', rotulo: 'Participação', papel: 'numero', largura: '16%', celula: (item) => formatarPercentual(item.participacao) },
+    { chave: 'acumulado', rotulo: 'Acumulado', papel: 'numero', largura: '16%', celula: (item) => formatarPercentual(item.acumulado) },
+  ]
+  if (mostrarFaixas) {
+    colunas[0].largura = '28%'
+    colunas.push({ chave: 'faixa', rotulo: 'Faixa', largura: '6%', celula: (item) => item.faixa })
+  }
+  return <Tabela linhas={curva?.itens || []} colunas={colunas} />
 }
 
 function dataCurta(valor) {
@@ -210,24 +195,15 @@ function DashboardAdmin() {
         <MensagemErro texto={erro} />
         <Periodo de={de} ate={ate} setDe={setDe} setAte={setAte} onSubmit={consultar}>
           <div className="formulario__linha">
-            <div className="form-field">
-              <label className="label" htmlFor="modelo">Modelo analítico</label>
-              <Select
-                id="modelo"
-                valor={modelo}
-                onChange={setModelo}
-                opcoes={(modelos.length ? modelos : [{ codigo: 'CURVA_ABC', nome: 'Curva ABC (Pareto)' }])
-                  .map((item) => ({ valor: item.codigo, rotulo: item.nome }))}
-              />
-            </div>
-            <label className="formulario__opcao">
-              <input
-                type="checkbox"
-                checked={mostrarFaixas}
-                onChange={(evento) => setMostrarFaixas(evento.target.checked)}
-              />
-              Mostrar faixas A, B e C
-            </label>
+            <FormFieldSelect
+              id="modelo"
+              rotulo="Modelo analítico"
+              valor={modelo}
+              onChange={setModelo}
+              opcoes={(modelos.length ? modelos : [{ codigo: 'CURVA_ABC', nome: 'Curva ABC (Pareto)' }])
+                .map((item) => ({ valor: item.codigo, rotulo: item.nome }))}
+            />
+            <Checkbox id="faixas-abc" texto="Mostrar faixas A, B e C" marcado={mostrarFaixas} onChange={setMostrarFaixas} />
           </div>
         </Periodo>
         {painel ? (
@@ -239,20 +215,20 @@ function DashboardAdmin() {
             </p>
             <section className="kpis">
               {painel.kpis.map((kpi) => (
-                <article
+                <CartaoMetrica
                   key={kpi.codigo}
-                  className={kpi.atencao ? 'kpi kpi--atencao' : 'kpi'}
+                  rotulo={kpi.rotulo}
+                  valor={valorKpi(kpi)}
+                  detalhe={kpi.complemento || ''}
+                  atencao={kpi.atencao}
                   title={kpi.detalhes?.length ? `Sem venda: ${kpi.detalhes.join(', ')}` : undefined}
                 >
-                  <strong>{valorKpi(kpi)}</strong>
-                  <span>{kpi.rotulo}</span>
                   <SeloVariacao variacao={kpi.variacao} tipo={kpi.tipo} />
-                  {kpi.complemento ? <small>{kpi.complemento}</small> : null}
-                </article>
+                </CartaoMetrica>
               ))}
             </section>
             <section className="pagina__painel">
-              <h2>Alertas</h2>
+              <Titulo nivel={2} texto="Alertas" />
               <p className="painel-admin__nota">
                 Restaurantes sem venda recente olham os últimos 7 dias, independente do período escolhido.
               </p>
@@ -277,7 +253,7 @@ function DashboardAdmin() {
               ) : null}
             </section>
             <section className="pagina__painel">
-              <h2>Kasavana & Smith da plataforma</h2>
+              <Titulo nivel={2} texto="Kasavana & Smith da plataforma" />
               <p className="painel-admin__nota">
                 Cada restaurante é classificado no próprio cardápio. Os percentuais somam só quem tem pelo menos 5 produtos distintos e 10 pedidos.
                 {painel.restaurantesNaConsolidacao === 0
@@ -301,7 +277,7 @@ function DashboardAdmin() {
               </div>
             </section>
             <section className="pagina__painel">
-              <h2>Saúde do cardápio</h2>
+              <Titulo nivel={2} texto="Saúde do cardápio" />
               <p className="painel-admin__nota">Ordenado pela parcela de Estrelas. Verde até 10% sem custo, amarelo até 30%, vermelho acima disso.</p>
               <div className="saude-lista">
                 {painel.restaurantes.map((restaurante) => (
@@ -335,14 +311,8 @@ function DashboardAdmin() {
         {curva ? (
           <>
             <div className="cartoes">
-              <section className="pagina__painel cartao">
-                <span>Custo bruto</span>
-                <strong>{formatarMoeda(curva.custoBruto)}</strong>
-              </section>
-              <section className="pagina__painel cartao">
-                <span>Lucro bruto</span>
-                <strong>{formatarMoeda(curva.lucroBruto)}</strong>
-              </section>
+              <CartaoMetrica rotulo="Custo bruto" valor={formatarMoeda(curva.custoBruto)} />
+              <CartaoMetrica rotulo="Lucro bruto" valor={formatarMoeda(curva.lucroBruto)} />
             </div>
             {curva.linhasSemCusto > 0 ? (
               <p>
@@ -351,7 +321,7 @@ function DashboardAdmin() {
               </p>
             ) : null}
             <section className="pagina__painel">
-              <h2>Curva ABC por restaurante</h2>
+              <Titulo nivel={2} texto="Curva ABC por restaurante" />
               <GraficoCurvaAbc itens={curva.itens} mostrarFaixas={mostrarFaixas} />
               <TabelaCurva curva={curva} mostrarFaixas={mostrarFaixas} />
             </section>
@@ -416,36 +386,18 @@ function DashboardGestor() {
               <p>sem permissão para ver valores financeiros</p>
             ) : null}
             <div className="cartoes">
-              <section className="pagina__painel cartao">
-                <span>Faturamento</span>
-                <strong>{formatarMoeda(painel.faturamento)}</strong>
-              </section>
-              <section className="pagina__painel cartao">
-                <span>Custo bruto</span>
-                <strong>{formatarMoeda(painel.custoBruto)}</strong>
-              </section>
-              <section className="pagina__painel cartao">
-                <span>Lucro bruto</span>
-                <strong>{formatarMoeda(painel.lucroBruto)}</strong>
-              </section>
-              <section className="pagina__painel cartao">
-                <span>Margem média</span>
-                <strong>{formatarPercentual(painel.margemMedia)}</strong>
-              </section>
-              <section className="pagina__painel cartao">
-                <span>Pedidos</span>
-                <strong>{painel.totalPedidos}</strong>
-              </section>
-              <section className="pagina__painel cartao">
-                <span>Ticket médio</span>
-                <strong>{formatarMoeda(painel.ticketMedio)}</strong>
-              </section>
+              <CartaoMetrica rotulo="Faturamento" valor={formatarMoeda(painel.faturamento)} />
+              <CartaoMetrica rotulo="Custo bruto" valor={formatarMoeda(painel.custoBruto)} />
+              <CartaoMetrica rotulo="Lucro bruto" valor={formatarMoeda(painel.lucroBruto)} />
+              <CartaoMetrica rotulo="Margem média" valor={formatarPercentual(painel.margemMedia)} />
+              <CartaoMetrica rotulo="Pedidos" valor={painel.totalPedidos} />
+              <CartaoMetrica rotulo="Ticket médio" valor={formatarMoeda(painel.ticketMedio)} />
             </div>
             {painel.coberturaDeCusto != null ? (
               <p>margem calculada sobre {formatarPercentual(painel.coberturaDeCusto)} do faturamento</p>
             ) : null}
             <section className="pagina__painel">
-              <h2>Faturamento por dia</h2>
+              <Titulo nivel={2} texto="Faturamento por dia" />
               <div className="grafico">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={serie} margin={{ top: 16, right: 16, bottom: 8, left: 8 }}>
@@ -459,7 +411,7 @@ function DashboardGestor() {
               </div>
             </section>
             <section className="pagina__painel">
-              <h2>Mais vendidos</h2>
+              <Titulo nivel={2} texto="Mais vendidos" />
               {painel.topItens?.length ? (
                 <ol className="mais-vendidos">
                   {painel.topItens.map((item) => (
@@ -476,7 +428,7 @@ function DashboardGestor() {
         ) : null}
         {matriz ? (
           <section className="pagina__painel">
-            <h2>Kasavana & Smith</h2>
+            <Titulo nivel={2} texto="Kasavana & Smith" />
             <ul className="legenda">
               {LEGENDAS_CLASSE.map(([classe, texto]) => (
                 <li key={classe}>
@@ -500,10 +452,10 @@ function DashboardGestor() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div className="form-field campo-curto">
-              <label className="label" htmlFor="filtro-classe">Classe</label>
-              <Select
+            <div className="campo-curto">
+              <FormFieldSelect
                 id="filtro-classe"
+                rotulo="Classe"
                 valor={classeFiltro}
                 onChange={setClasseFiltro}
                 opcoes={[
@@ -513,42 +465,22 @@ function DashboardGestor() {
               />
             </div>
             {itensMatriz.length === 0 ? <p>{classeFiltro ? 'Nenhum produto nessa classe.' : 'Nenhum produto no período.'}</p> : (
-            <div className="tabela-rolagem">
-              <table className="tabela">
-                <thead>
-                  <tr>
-                    <th>Produto</th>
-                    <th>Categoria</th>
-                    <th>Quantidade</th>
-                    <th>Popularidade</th>
-                    <th>Lucro unitário</th>
-                    <th>Lucro total</th>
-                    <th>Custo bruto</th>
-                    <th>Margem</th>
-                    <th className="tabela__classe">Classe</th>
-                    <th>Sugestão</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {itensMatriz.map((item) => (
-                    <tr key={item.produtoId}>
-                      <td>{item.nome}</td>
-                      <td>{item.categoria}</td>
-                      <td>{item.quantidade}</td>
-                      <td>{formatarPercentual(item.popularidade)}</td>
-                      <td>{formatarMoeda(item.margem)}</td>
-                      <td>{item.margem == null ? '—' : formatarMoeda(Number(item.margem) * Number(item.quantidade))}</td>
-                      <td>{formatarMoeda(item.custoBruto)}</td>
-                      <td>{formatarPercentual(item.margemPercentual)}</td>
-                      <td className="tabela__classe">
-                        <span className={`selo selo--${item.classe}`}>{rotuloClasse(item.classe)}</span>
-                      </td>
-                      <td>{item.recomendacao}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Tabela
+              classe="tabela--analise"
+              linhas={itensMatriz}
+              colunas={[
+                { chave: 'nome', rotulo: 'Produto', largura: '14%', celula: (item) => item.nome },
+                { chave: 'categoria', rotulo: 'Categoria', largura: '10%', celula: (item) => item.categoria },
+                { chave: 'quantidade', rotulo: 'Quantidade', papel: 'numero', largura: '7%', celula: (item) => item.quantidade },
+                { chave: 'popularidade', rotulo: 'Popularidade', papel: 'numero', largura: '9%', celula: (item) => formatarPercentual(item.popularidade) },
+                { chave: 'margem', rotulo: 'Lucro unitário', papel: 'numero', largura: '8%', celula: (item) => formatarMoeda(item.margem) },
+                { chave: 'lucro', rotulo: 'Lucro total', papel: 'numero', largura: '8%', celula: (item) => (item.margem == null ? '—' : formatarMoeda(Number(item.margem) * Number(item.quantidade))) },
+                { chave: 'custo', rotulo: 'Custo bruto', papel: 'numero', largura: '8%', celula: (item) => formatarMoeda(item.custoBruto) },
+                { chave: 'margemPercentual', rotulo: 'Margem', papel: 'numero', largura: '7%', celula: (item) => formatarPercentual(item.margemPercentual) },
+                { chave: 'classe', rotulo: 'Classe', papel: 'classe', largura: '11%', celula: (item) => <span className={`selo selo--${item.classe}`}>{rotuloClasse(item.classe)}</span> },
+                { chave: 'recomendacao', rotulo: 'Sugestão', papel: 'texto', largura: '18%', celula: (item) => item.recomendacao },
+              ]}
+            />
             )}
           </section>
         ) : null}
@@ -612,38 +544,27 @@ function DashboardUsuario() {
         <CabecalhoPagina titulo="Dashboard" descricao="Pedidos cadastrados por você, por horário e por comanda." />
         <MensagemErro texto={erro} />
         <div className="cartoes">
-          <section className="pagina__painel cartao">
-            <span>Pedidos</span>
-            <strong>{pedidos.length}</strong>
-          </section>
-          <section className="pagina__painel cartao">
-            <span>Valor dos pedidos</span>
-            <strong>{formatarMoeda(valorGeral)}</strong>
-          </section>
-          <section className="pagina__painel cartao">
-            <span>Comandas</span>
-            <strong>{grupos.length}</strong>
-          </section>
+          <CartaoMetrica rotulo="Pedidos" valor={pedidos.length} />
+          <CartaoMetrica rotulo="Valor dos pedidos" valor={formatarMoeda(valorGeral)} />
+          <CartaoMetrica rotulo="Comandas" valor={grupos.length} />
         </div>
         <section className="pagina__painel">
-          <h2>Por horário</h2>
+          <Titulo nivel={2} texto="Por horário" />
           <div className="formulario__linha">
             <FormField id="busca-horario" rotulo="Buscar" valor={busca} onChange={setBusca} placeholder="Cliente, produto, mesa ou comanda" />
-            <div>
-              <label htmlFor="filtro-status">Status</label>
-              <Select
-                id="filtro-status"
-                valor={status}
-                onChange={setStatus}
-                opcoes={[
-                  { valor: '', rotulo: 'Todos' },
-                  { valor: 'ATIVO', rotulo: 'Ativo' },
-                  { valor: 'PAGO', rotulo: 'Pago' },
-                  { valor: 'ESTORNADO', rotulo: 'Estornado' },
-                  { valor: 'CANCELADO', rotulo: 'Cancelado' },
-                ]}
-              />
-            </div>
+            <FormFieldSelect
+              id="filtro-status"
+              rotulo="Status"
+              valor={status}
+              onChange={setStatus}
+              opcoes={[
+                { valor: '', rotulo: 'Todos' },
+                { valor: 'ATIVO', rotulo: 'Ativo' },
+                { valor: 'PAGO', rotulo: 'Pago' },
+                { valor: 'ESTORNADO', rotulo: 'Estornado' },
+                { valor: 'CANCELADO', rotulo: 'Cancelado' },
+              ]}
+            />
           </div>
           <p>{porHorario.length} pedido(s)</p>
           {porHorario.length === 0 ? <p>Nenhum pedido encontrado.</p> : (
@@ -653,12 +574,12 @@ function DashboardUsuario() {
           )}
         </section>
         <section className="pagina__painel">
-          <h2>Por comanda</h2>
+          <Titulo nivel={2} texto="Por comanda" />
           <p>{grupos.length} comanda(s)</p>
           <div className="grade-comandas">
             {gruposPagina.map((grupo) => (
               <article key={grupo.chave} className="comanda-card">
-                <h3>Comanda {grupo.numero != null ? `#${grupo.numero}` : 'sem número'}</h3>
+                <Titulo nivel={3} texto={`Comanda ${grupo.numero != null ? `#${grupo.numero}` : 'sem número'}`} />
                 <p>{grupo.pedidos.length} pedido(s)</p>
                 {grupo.pedidos.map((pedido) => <CartaoPedido key={pedido.id} pedido={pedido} />)}
               </article>

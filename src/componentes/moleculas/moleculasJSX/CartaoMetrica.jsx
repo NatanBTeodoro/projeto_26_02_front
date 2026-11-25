@@ -1,24 +1,11 @@
-// moleculas/moleculasJSX/CartaoMetrica.jsx
-//
-// USO: número de destaque no painel (receita, ticket, alertas).
-// NECESSIDADE: o dashboard repete o mesmo bloco de rótulo + valor.
-//
-// PROPS:
-//   rotulo  (string)
-//   valor   (string)
-//   detalhe (string)
-//
-// EXEMPLOS DE USO:
-//   <CartaoMetrica rotulo="Receita" valor="R$ 1.200,00" />
-
-import '../moleculasCSS/CartaoMetrica.css'
-
-function CartaoMetrica({ rotulo, valor, detalhe = '' }) {
+function CartaoMetrica({ rotulo, valor, detalhe = '', atencao = false, title, children }) {
+  const classe = ['pagina__painel', 'cartao', atencao ? 'kpi--atencao' : ''].filter(Boolean).join(' ')
   return (
-    <article className="cartao-metrica">
-      <p className="cartao-metrica__rotulo">{rotulo}</p>
-      <strong className="cartao-metrica__valor">{valor}</strong>
-      {detalhe ? <p className="cartao-metrica__detalhe">{detalhe}</p> : null}
+    <article className={classe} title={title}>
+      <span>{rotulo}</span>
+      <strong>{valor}</strong>
+      {detalhe ? <p className="cartao__detalhe">{detalhe}</p> : null}
+      {children}
     </article>
   )
 }

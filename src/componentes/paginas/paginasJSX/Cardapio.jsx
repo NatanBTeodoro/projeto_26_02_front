@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import TemplateAutenticado from '../../templates/templatesJSX/TemplateAutenticado'
 import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import Badge from '../../atomos/atomosJSX/Badge'
+import Titulo from '../../atomos/atomosJSX/Titulo'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
@@ -63,7 +64,7 @@ function Cardapio() {
         ) : null}
         {grupos.map((grupo, indice) => (
           <section key={grupo.categoria} id={`categoria-${indice}`} className="pagina__painel cardapio__secao">
-            <h2>{grupo.categoria}</h2>
+            <Titulo nivel={2} texto={grupo.categoria} />
             <div className="cardapio__lista">
               {grupo.itens.map((produto) => (
                 <article key={produto.id} className={produto.ativo ? 'cardapio__item' : 'cardapio__item cardapio__item--indisponivel'}>

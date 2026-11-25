@@ -3,6 +3,7 @@ import TemplateAutenticado from '../../templates/templatesJSX/TemplateAutenticad
 import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import Botao from '../../atomos/atomosJSX/Botao'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
+import Tabela from '../../moleculas/moleculasJSX/Tabela'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { gravarVisao, lerVisao, limparVisao } from '../../../utils/sessao'
@@ -36,30 +37,15 @@ function Restaurantes() {
           descricao="Abra um restaurante para ver o sistema com a visão de gestor, inclusive a matriz de Kasavana & Smith."
         />
         <MensagemErro texto={erro} />
-        <table className="tabela">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Situação</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {restaurantes.map((restaurante) => (
-              <tr key={restaurante.id}>
-                <td>
-                  {restaurante.nome}
-                  {restaurante.status === 'FECHADO' ? ' (Fechado)' : ''}
-                </td>
-                <td>{rotuloStatus(restaurante.status)}</td>
-                <td>
-                  <Botao texto="Ver como gestor" onClick={() => abrir(restaurante)} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {restaurantes.length === 0 ? <p>Nenhum restaurante cadastrado.</p> : null}
+        <Tabela
+          linhas={restaurantes}
+          vazio="Nenhum restaurante cadastrado."
+          colunas={[
+            { chave: 'nome', rotulo: 'Nome', celula: (restaurante) => `${restaurante.nome}${restaurante.status === 'FECHADO' ? ' (Fechado)' : ''}` },
+            { chave: 'status', rotulo: 'Situação', celula: (restaurante) => rotuloStatus(restaurante.status) },
+            { chave: 'acao', rotulo: '', papel: 'acoes', celula: (restaurante) => <Botao texto="Ver como gestor" onClick={() => abrir(restaurante)} /> },
+          ]}
+        />
       </div>
     </TemplateAutenticado>
   )

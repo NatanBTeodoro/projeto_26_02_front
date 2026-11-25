@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import TemplateAutenticado from '../../templates/templatesJSX/TemplateAutenticado'
 import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import FormField from '../../moleculas/moleculasJSX/FormField'
-import Select from '../../atomos/atomosJSX/Select'
+import FormFieldSelect from '../../moleculas/moleculasJSX/FormFieldSelect'
+import Tabela from '../../moleculas/moleculasJSX/Tabela'
 import Botao from '../../atomos/atomosJSX/Botao'
+import Titulo from '../../atomos/atomosJSX/Titulo'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
@@ -263,7 +265,7 @@ function Cadastros() {
 
         {!gestor ? (
           <section className="pagina__painel">
-            <h2>Restaurantes</h2>
+            <Titulo nivel={2} texto="Restaurantes" />
             <form className="formulario" onSubmit={salvarRestaurante}>
               <FormField
                 id="nome-restaurante"
@@ -289,23 +291,17 @@ function Cadastros() {
                 <Botao texto="Cancelar" variante="fantasma" onClick={() => setExclusao(null)} />
               </div>
             ) : null}
-            <table className="tabela">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Situação</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {restaurantes.map((restaurante) => (
-                  <tr key={restaurante.id}>
-                    <td>
-                      {restaurante.nome}
-                      {restaurante.status === 'FECHADO' ? ' (Fechado)' : ''}
-                    </td>
-                    <td>{rotuloStatus(restaurante.status)}</td>
-                    <td>
+            <Tabela
+              linhas={restaurantes}
+              colunas={[
+                { chave: 'nome', rotulo: 'Nome', celula: (restaurante) => `${restaurante.nome}${restaurante.status === 'FECHADO' ? ' (Fechado)' : ''}` },
+                { chave: 'status', rotulo: 'Situação', celula: (restaurante) => rotuloStatus(restaurante.status) },
+                {
+                  chave: 'acao',
+                  rotulo: '',
+                  papel: 'acoes',
+                  celula: (restaurante) => (
+                    <>
                       {restaurante.status !== 'FECHADO' ? (
                         <Botao
                           texto="Editar"
@@ -323,28 +319,26 @@ function Cadastros() {
                         <Botao texto="Reativar" variante="fantasma" onClick={() => alternarRestaurante(restaurante)} />
                       ) : null}
                       <Botao texto="Deletar" variante="perigo" onClick={() => pedirExclusao(restaurante)} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </>
+                  ),
+                },
+              ]}
+            />
           </section>
         ) : null}
 
         <section className="pagina__painel">
-          <h2>{gestor ? 'Usuários' : 'Gestores e usuários'}</h2>
+          <Titulo nivel={2} texto={gestor ? 'Usuários' : 'Gestores e usuários'} />
           {!bloqueado ? (
             <form className="formulario" onSubmit={salvarUsuario}>
               {!gestor && !editandoUsuario ? (
-                <>
-                  <label htmlFor="restaurante-cadastro">Restaurante</label>
-                  <Select
-                    id="restaurante-cadastro"
-                    valor={restauranteId}
-                    onChange={setRestauranteId}
-                    opcoes={opcoesRestaurante.filter((opcao) => opcao.valor !== '')}
-                  />
-                </>
+                <FormFieldSelect
+                  id="restaurante-cadastro"
+                  rotulo="Restaurante"
+                  valor={restauranteId}
+                  onChange={setRestauranteId}
+                  opcoes={opcoesRestaurante.filter((opcao) => opcao.valor !== '')}
+                />
               ) : null}
               <FormField id="nome-pessoa" rotulo="Nome" valor={nome} onChange={setNome} obrigatorio />
               <FormField id="email-pessoa" rotulo="E-mail" tipo="email" valor={email} onChange={setEmail} obrigatorio />
@@ -352,10 +346,7 @@ function Cadastros() {
                 <FormField id="senha-pessoa" rotulo="Senha" tipo="password" valor={senha} onChange={setSenha} dica={DICA_SENHA} obrigatorio />
               ) : null}
               {!gestor && (!editandoUsuario || String(editandoUsuario.id) !== String(sessao.usuarioId)) ? (
-                <>
-                  <label htmlFor="perfil">Perfil</label>
-                  <Select id="perfil" valor={perfil} onChange={setPerfil} opcoes={perfis} />
-                </>
+                <FormFieldSelect id="perfil" rotulo="Perfil" valor={perfil} onChange={setPerfil} opcoes={perfis} />
               ) : null}
               <div className="formulario__acoes">
                 <Botao texto={editandoUsuario ? 'Salvar' : 'Cadastrar'} tipo="submit" />
@@ -366,53 +357,40 @@ function Cadastros() {
             </form>
           ) : null}
           {!gestor ? (
-            <>
-              <label htmlFor="filtro-restaurante">Filtrar restaurante</label>
-              <Select id="filtro-restaurante" valor={restauranteId} onChange={setRestauranteId} opcoes={opcoesRestaurante} />
-            </>
+            <FormFieldSelect id="filtro-restaurante" rotulo="Filtrar restaurante" valor={restauranteId} onChange={setRestauranteId} opcoes={opcoesRestaurante} />
           ) : null}
-          <table className="tabela">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>E-mail</th>
-                {!gestor ? <th>Restaurante</th> : null}
-                <th>Perfil</th>
-                <th>Ativo</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {usuarios.map((usuario) => (
-                <tr key={usuario.id}>
-                  <td>{usuario.nome}</td>
-                  <td>{usuario.email}</td>
-                  {!gestor ? <td>{usuario.restauranteNome}</td> : null}
-                  <td>{rotuloPerfil(usuario.perfil)}</td>
-                  <td>{formatarBooleano(usuario.ativo)}</td>
-                  <td>
-                    {!bloqueado ? (
-                      <>
-                        <Botao texto="Editar" variante="secundario" onClick={() => editarUsuario(usuario)} />
-                        <Botao
-                          texto={usuario.ativo ? 'Inativar' : 'Reativar'}
-                          variante="fantasma"
-                          onClick={() => alternarUsuario(usuario)}
-                        />
-                        <Botao texto="Deletar" variante="perigo" onClick={() => deletarUsuario(usuario)} />
-                        {podeSenha(usuario) ? (
-                          <Botao texto="Nova senha" variante="fantasma" onClick={() => redefinirSenha(usuario)} />
-                        ) : null}
-                        {podeAtribuir(minhasFuncoes) ? (
-                          <Botao texto="Atribuir funções" variante="secundario" onClick={() => setAlvoFuncoes(usuario)} />
-                        ) : null}
-                      </>
+          <Tabela
+            linhas={usuarios}
+            colunas={[
+              { chave: 'nome', rotulo: 'Nome' },
+              { chave: 'email', rotulo: 'E-mail' },
+              ...(!gestor ? [{ chave: 'restaurante', rotulo: 'Restaurante', celula: (usuario) => usuario.restauranteNome }] : []),
+              { chave: 'perfil', rotulo: 'Perfil', celula: (usuario) => rotuloPerfil(usuario.perfil) },
+              { chave: 'ativo', rotulo: 'Ativo', celula: (usuario) => formatarBooleano(usuario.ativo) },
+              {
+                chave: 'acao',
+                rotulo: '',
+                papel: 'acoes',
+                celula: (usuario) => (!bloqueado ? (
+                  <>
+                    <Botao texto="Editar" variante="secundario" onClick={() => editarUsuario(usuario)} />
+                    <Botao
+                      texto={usuario.ativo ? 'Inativar' : 'Reativar'}
+                      variante="fantasma"
+                      onClick={() => alternarUsuario(usuario)}
+                    />
+                    <Botao texto="Deletar" variante="perigo" onClick={() => deletarUsuario(usuario)} />
+                    {podeSenha(usuario) ? (
+                      <Botao texto="Nova senha" variante="fantasma" onClick={() => redefinirSenha(usuario)} />
                     ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    {podeAtribuir(minhasFuncoes) ? (
+                      <Botao texto="Atribuir funções" variante="secundario" onClick={() => setAlvoFuncoes(usuario)} />
+                    ) : null}
+                  </>
+                ) : null),
+              },
+            ]}
+          />
           {alvoFuncoes ? (
             <PainelFuncoes
               usuario={alvoFuncoes}

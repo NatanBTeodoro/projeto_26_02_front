@@ -12,9 +12,9 @@
 
 import '../atomosCSS/Titulo.css'
 
-function Titulo({ texto, nivel = 1 }) {
+function Titulo({ texto, nivel = 1, id }) {
   const Tag = nivel === 2 ? 'h2' : nivel === 3 ? 'h3' : 'h1'
-  return <Tag className={`titulo titulo--${nivel}`}>{texto}</Tag>
+  return <Tag id={id} className={`titulo titulo--${nivel}`}>{texto}</Tag>
 }
 
 export default Titulo

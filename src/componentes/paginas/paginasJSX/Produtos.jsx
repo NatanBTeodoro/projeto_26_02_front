@@ -3,7 +3,8 @@ import { Navigate } from 'react-router-dom'
 import TemplateAutenticado from '../../templates/templatesJSX/TemplateAutenticado'
 import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import FormField from '../../moleculas/moleculasJSX/FormField'
-import Select from '../../atomos/atomosJSX/Select'
+import FormFieldSelect from '../../moleculas/moleculasJSX/FormFieldSelect'
+import Tabela from '../../moleculas/moleculasJSX/Tabela'
 import Botao from '../../atomos/atomosJSX/Botao'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
@@ -198,8 +199,7 @@ function Produtos() {
           <section className="pagina__painel">
             {bloqueado ? null : (
             <form className="formulario" onSubmit={salvarProduto}>
-              <label htmlFor="categoria-produto">Categoria</label>
-              <Select id="categoria-produto" valor={form.categoriaId} onChange={(valor) => alterar('categoriaId', valor)} opcoes={opcoesCategoria} />
+              <FormFieldSelect id="categoria-produto" rotulo="Categoria" valor={form.categoriaId} onChange={(valor) => alterar('categoriaId', valor)} opcoes={opcoesCategoria} />
               <FormField id="nome" rotulo="Nome" valor={form.nome} onChange={(valor) => alterar('nome', valor)} obrigatorio />
               <div className="formulario__linha">
                 <FormField id="preco" rotulo="Preço" tipo="number" valor={form.precoAtual} onChange={(valor) => alterar('precoAtual', valor)} obrigatorio />
@@ -251,37 +251,27 @@ function Produtos() {
                 </ul>
               ) : null}
             </div>
-            <table className="tabela">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Categoria</th>
-                  <th>Preço</th>
-                  <th>Custo</th>
-                  <th>Ativo</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {produtosPagina.map((produto) => (
-                  <tr key={produto.id}>
-                    <td>{produto.nome}</td>
-                    <td>{produto.categoriaNome}</td>
-                    <td>{formatarMoeda(produto.precoAtual)}</td>
-                    <td>{formatarMoeda(produto.custoAtual)}</td>
-                    <td>{formatarBooleano(produto.ativo)}</td>
-                    <td>
-                      {bloqueado ? null : (
-                        <>
-                          <Botao texto="Editar" variante="secundario" onClick={() => editar(produto)} />
-                          <Botao texto={produto.ativo ? 'Inativar' : 'Reativar'} variante="fantasma" onClick={() => alternarProduto(produto)} />
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <Tabela
+              linhas={produtosPagina}
+              colunas={[
+                { chave: 'nome', rotulo: 'Nome' },
+                { chave: 'categoriaNome', rotulo: 'Categoria' },
+                { chave: 'precoAtual', rotulo: 'Preço', papel: 'numero', celula: (produto) => formatarMoeda(produto.precoAtual) },
+                { chave: 'custoAtual', rotulo: 'Custo', papel: 'numero', celula: (produto) => formatarMoeda(produto.custoAtual) },
+                { chave: 'ativo', rotulo: 'Ativo', celula: (produto) => formatarBooleano(produto.ativo) },
+                {
+                  chave: 'acao',
+                  rotulo: '',
+                  papel: 'acoes',
+                  celula: (produto) => (bloqueado ? null : (
+                    <>
+                      <Botao texto="Editar" variante="secundario" onClick={() => editar(produto)} />
+                      <Botao texto={produto.ativo ? 'Inativar' : 'Reativar'} variante="fantasma" onClick={() => alternarProduto(produto)} />
+                    </>
+                  )),
+                },
+              ]}
+            />
             <div className="paginas-numeradas">
               {Array.from({ length: totalPaginas }, (_, indice) => (
                 <Botao

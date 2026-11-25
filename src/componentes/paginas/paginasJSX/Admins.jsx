@@ -3,6 +3,8 @@ import TemplateAutenticado from '../../templates/templatesJSX/TemplateAutenticad
 import CabecalhoPagina from '../../moleculas/moleculasJSX/CabecalhoPagina'
 import FormField from '../../moleculas/moleculasJSX/FormField'
 import Botao from '../../atomos/atomosJSX/Botao'
+import Tabela from '../../moleculas/moleculasJSX/Tabela'
+import Titulo from '../../atomos/atomosJSX/Titulo'
 import MensagemErro from '../../atomos/atomosJSX/MensagemErro'
 import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
@@ -134,88 +136,77 @@ function Admins() {
         <MensagemErro texto={erro} />
         {aviso ? <p>{aviso}</p> : null}
         <section className="pagina__painel">
-          <h2>Usuários TI</h2>
+          <Titulo nivel={2} texto="Usuários TI" />
           <form className="formulario" onSubmit={criarTi}>
             <FormField id="nome-ti" rotulo="Nome" valor={nomeTi} onChange={setNomeTi} obrigatorio />
             <FormField id="email-ti" rotulo="E-mail" tipo="email" valor={emailTi} onChange={setEmailTi} obrigatorio />
             <FormField id="senha-ti" rotulo="Senha" tipo="password" valor={senhaTi} onChange={setSenhaTi} dica={DICA_SENHA} obrigatorio />
             <Botao texto="Cadastrar usuário TI" tipo="submit" />
           </form>
-          <div className="tabela-rolagem">
-            <table className="tabela">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>E-mail</th>
-                  <th>Ativo</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {equipe.map((usuario) => (
-                  <tr key={usuario.id}>
-                    <td>{usuario.nome}</td>
-                    <td>{usuario.email}</td>
-                    <td>{formatarBooleano(usuario.ativo)}</td>
-                    <td>
-                      {usuario.principal ? <span>Conta principal</span> : null}
-                      {!usuario.principal && String(usuario.id) !== String(sessao.usuarioId) ? (
-                        <Botao texto="Remover" variante="perigo" onClick={() => removerTi(usuario)} />
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Tabela
+            linhas={equipe}
+            colunas={[
+              { chave: 'nome', rotulo: 'Nome' },
+              { chave: 'email', rotulo: 'E-mail' },
+              { chave: 'ativo', rotulo: 'Ativo', celula: (usuario) => formatarBooleano(usuario.ativo) },
+              {
+                chave: 'acao',
+                rotulo: '',
+                papel: 'acoes',
+                celula: (usuario) => (
+                  <>
+                    {usuario.principal ? <span>Conta principal</span> : null}
+                    {!usuario.principal && String(usuario.id) !== String(sessao.usuarioId) ? (
+                      <Botao texto="Remover" variante="perigo" onClick={() => removerTi(usuario)} />
+                    ) : null}
+                  </>
+                ),
+              },
+            ]}
+          />
         </section>
         <section className="pagina__painel">
-          <h2>Contas de administrador</h2>
+          <Titulo nivel={2} texto="Contas de administrador" />
           <form className="formulario" onSubmit={criar}>
             <FormField id="nome" rotulo="Nome" valor={nome} onChange={setNome} obrigatorio />
             <FormField id="email" rotulo="E-mail" tipo="email" valor={email} onChange={setEmail} obrigatorio />
             <FormField id="senha" rotulo="Senha" tipo="password" valor={senha} onChange={setSenha} dica={DICA_SENHA} obrigatorio />
             <Botao texto="Cadastrar administrador" tipo="submit" />
           </form>
-          <div className="tabela-rolagem">
-          <table className="tabela">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>E-mail</th>
-              <th>Ativo</th>
-              <th>Restaurantes</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {admins.map((admin) => (
-              <tr key={admin.id}>
-                <td>{admin.nome}</td>
-                <td>{admin.email}</td>
-                <td>{formatarBooleano(admin.ativo)}</td>
-                <td>
-                  {admin.restaurantes?.length
-                    ? admin.restaurantes.map((restaurante) => (
-                      <div key={restaurante.id}>
-                        {restaurante.nome} ({rotuloStatus(restaurante.status)})
-                      </div>
-                    ))
-                    : 'Nenhum'}
-                </td>
-                <td>
-                  <Botao
-                    texto={admin.ativo ? 'Inativar' : 'Reativar'}
-                    variante="secundario"
-                    onClick={() => alternar(admin)}
-                  />
-                  <Botao texto="Deletar" variante="perigo" onClick={() => deletar(admin)} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-          </div>
+          <Tabela
+            linhas={admins}
+            colunas={[
+              { chave: 'nome', rotulo: 'Nome' },
+              { chave: 'email', rotulo: 'E-mail' },
+              { chave: 'ativo', rotulo: 'Ativo', celula: (admin) => formatarBooleano(admin.ativo) },
+              {
+                chave: 'restaurantes',
+                rotulo: 'Restaurantes',
+                celula: (admin) => (admin.restaurantes?.length
+                  ? admin.restaurantes.map((restaurante) => (
+                    <div key={restaurante.id}>
+                      {restaurante.nome} ({rotuloStatus(restaurante.status)})
+                    </div>
+                  ))
+                  : 'Nenhum'),
+              },
+              {
+                chave: 'acao',
+                rotulo: '',
+                papel: 'acoes',
+                celula: (admin) => (
+                  <>
+                    <Botao
+                      texto={admin.ativo ? 'Inativar' : 'Reativar'}
+                      variante="secundario"
+                      onClick={() => alternar(admin)}
+                    />
+                    <Botao texto="Deletar" variante="perigo" onClick={() => deletar(admin)} />
+                  </>
+                ),
+              },
+            ]}
+          />
         </section>
       </div>
     </TemplateAutenticado>
