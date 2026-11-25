@@ -256,9 +256,9 @@ function FuncoesRede() {
               vazio="Nenhum registro de auditoria."
               colunas={[
                 { chave: 'dataHora', rotulo: 'Quando' },
-                { chave: 'autorId', rotulo: 'Quem' },
-                { chave: 'alvoId', rotulo: 'Para quem' },
-                { chave: 'restauranteId', rotulo: 'Restaurante' },
+                { chave: 'autorNome', rotulo: 'Quem' },
+                { chave: 'alvoNome', rotulo: 'Para quem' },
+                { chave: 'restauranteNome', rotulo: 'Restaurante' },
                 { chave: 'authority', rotulo: 'Função', celula: (item) => rotuloFuncao(item.authority) },
                 { chave: 'acao', rotulo: 'Ação' },
               ]}

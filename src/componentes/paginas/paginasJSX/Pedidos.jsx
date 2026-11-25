@@ -253,8 +253,8 @@ function GradeMesas({ pedidos, comandas = [], mesaSelecionada = '', onSelecionar
       <div className="grade-mesas">
         {visiveis.map((mesa) => {
           const recente = [...mesa.pedidos].sort((a, b) => String(b.dataHora).localeCompare(String(a.dataHora)))[0]
-          const numero = recente?.comandaNumero ?? recente?.comandaId ?? '—'
-          const clientes = [...new Set(mesa.pedidos.map((pedido) => pedido.nomeCliente).filter(Boolean))].join(', ')
+          const partes = comandasDaMesa(mesa.pedidos, mesa.mesa)
+          const totalMesa = totalDaMesa(mesa.pedidos, mesa.mesa)
           const selo = onSelecionar
             ? statusMesa(mesa, comandas)
             : { texto: rotuloStatus(recente?.status), variante: varianteStatus(recente?.status) }
@@ -262,8 +262,14 @@ function GradeMesas({ pedidos, comandas = [], mesaSelecionada = '', onSelecionar
           const conteudo = (
             <>
               <strong>Mesa {mesa.mesa}</strong>
-              <span className="pilula">#{numero} · {mesa.pedidos.length} {mesa.pedidos.length === 1 ? 'pedido' : 'pedidos'}</span>
-              <span>{clientes}</span>
+              <span className="mesa-card__total">Total da mesa {formatarMoeda(totalMesa)}</span>
+              <div className="mesa-card__comandas">
+                {partes.map((parte) => (
+                  <span key={parte.id}>
+                    Comanda #{parte.numero} · {parte.nome || 'Sem cliente'} · {formatarMoeda(parte.total)}
+                  </span>
+                ))}
+              </div>
               {recente ? <Badge texto={selo.texto} variante={selo.variante} /> : null}
             </>
           )
@@ -315,6 +321,17 @@ function rotuloDia(chave) {
   return `${dia}/${mes}/${ano}`
 }
 
+function agruparComandasPorMesa(comandas) {
+  const mapa = new Map()
+  comandas.forEach((comanda) => {
+    const mesa = comanda.mesa ?? '—'
+    const chave = String(mesa)
+    if (!mapa.has(chave)) mapa.set(chave, { chave, mesa, comandas: [] })
+    mapa.get(chave).comandas.push(comanda)
+  })
+  return [...mapa.values()].sort((a, b) => Number(a.mesa) - Number(b.mesa))
+}
+
 function ocupaMesa(pedido) {
   return pedido.status === 'ATIVO'
 }
@@ -323,10 +340,36 @@ function entraNoTotal(pedido) {
   return pedido.status === 'ATIVO' || pedido.status === 'PAGO'
 }
 
-function totalDaComanda(pedidos, comandaId) {
-  const lista = pedidos.filter((pedido) => String(pedido.comandaId) === String(comandaId) && entraNoTotal(pedido))
-  if (lista.length < 2) return null
+function somarPedidos(lista) {
   return lista.reduce((soma, pedido) => soma + totalPedido(pedido), 0)
+}
+
+function totalDaComanda(pedidos, comandaId) {
+  return somarPedidos(pedidos.filter((pedido) => String(pedido.comandaId) === String(comandaId) && entraNoTotal(pedido)))
+}
+
+function totalDaMesa(pedidos, mesa) {
+  return somarPedidos(pedidos.filter((pedido) => String(pedido.mesa) === String(mesa) && entraNoTotal(pedido)))
+}
+
+function comandasDaMesa(pedidos, mesa) {
+  const mapa = new Map()
+  pedidos.forEach((pedido) => {
+    if (String(pedido.mesa) !== String(mesa) || !entraNoTotal(pedido) || !pedido.comandaId) return
+    const chave = String(pedido.comandaId)
+    if (!mapa.has(chave)) {
+      mapa.set(chave, {
+        id: pedido.comandaId,
+        numero: pedido.comandaNumero ?? pedido.comandaId,
+        nome: pedido.nomeCliente,
+        total: 0,
+      })
+    }
+    const parte = mapa.get(chave)
+    parte.total += totalPedido(pedido)
+    if (!parte.nome && pedido.nomeCliente) parte.nome = pedido.nomeCliente
+  })
+  return [...mapa.values()]
 }
 
 function seloPedido(pedido) {
@@ -337,7 +380,7 @@ function seloPedido(pedido) {
   return { texto: 'Ativo', variante: 'sucesso' }
 }
 
-function MenuAcoes({ onEditar, onEstornar, onCancelar, somenteEstorno = false, podeEditar = false, podeEstornar = false, podeCancelar = false }) {
+function MenuAcoes({ onEditar, onEstornar, onCancelar, somenteEstorno = false, podeEditar = false, podeEstornar = false, podeCancelar = false, direto = false }) {
   const [aberto, setAberto] = useState(false)
   const caixa = useRef(null)
 
@@ -358,6 +401,15 @@ function MenuAcoes({ onEditar, onEstornar, onCancelar, somenteEstorno = false, p
   const editar = !somenteEstorno && podeEditar
   const cancelar = !somenteEstorno && podeCancelar
   if (!editar && !podeEstornar && !cancelar) return null
+  if (direto) {
+    return (
+      <div className="menu-acoes menu-acoes--direto">
+        {editar ? <button type="button" onClick={onEditar}>Editar</button> : null}
+        {podeEstornar ? <button type="button" onClick={onEstornar}>Estornar</button> : null}
+        {cancelar ? <button type="button" onClick={onCancelar}>Cancelar</button> : null}
+      </div>
+    )
+  }
 
   return (
     <div className="menu-acoes" ref={caixa}>
@@ -447,7 +499,7 @@ function PedidosUsuario() {
       return
     }
     try {
-      await apiJson(endpoints.pedidos, {
+      const criado = await apiJson(endpoints.pedidos, {
         method: 'POST',
         body: JSON.stringify({
           comandaId: Number(comandaId),
@@ -457,7 +509,12 @@ function PedidosUsuario() {
         }),
       })
       setItens([])
-      setAviso('Pedido lançado nesta comanda.')
+      if (criado?.comandaId && String(criado.comandaId) !== String(comandaId)) {
+        setComandaId(String(criado.comandaId))
+        setAviso(`Pedido entrou na comanda #${criado.comandaNumero ?? criado.comandaId}, já aberta para este cliente.`)
+      } else {
+        setAviso('Pedido lançado nesta comanda.')
+      }
       await carregar()
     } catch (falha) {
       setErro(falha.message)
@@ -525,8 +582,13 @@ function PedidosUsuario() {
           <Titulo nivel={2} texto="Pedidos desta comanda" />
           {daComanda.length === 0 ? <p>Nenhum pedido ativo nesta comanda.</p> : null}
           {daComanda.map((pedido) => <CartaoPedido key={pedido.id} pedido={pedido} />)}
-          {totalSelecionado != null ? (
-            <p className="pedido-comanda-total">Total da comanda {formatarMoeda(totalSelecionado)}</p>
+          {comandaId ? (
+            <>
+              <p className="pedido-comanda-total">Total da comanda {formatarMoeda(totalSelecionado)}</p>
+              {mesa !== '' ? (
+                <p className="pedido-comanda-total">Total da mesa {formatarMoeda(totalDaMesa(pedidos.filter(ocupaMesa), mesa))}</p>
+              ) : null}
+            </>
           ) : null}
         </section>
         <section className="pagina__painel">
@@ -552,10 +614,17 @@ function agruparPorDia(lista) {
   return grupos
 }
 
-function LinhasPedido({ pedidos, bloqueado, onEditar, onEstornar, onCancelar, podeEditar, podeEstornar, podeEstornarPago, podeCancelar }) {
-  return agruparPorDia(pedidos).map((grupo) => (
+function LinhasPedido({ pedidos, bloqueado, onEditar, onEstornar, onCancelar, podeEditar, podeEstornar, podeEstornarPago, podeCancelar, direto = false }) {
+  return agruparPorDia(pedidos).map((grupo) => {
+    const faturado = grupo.pedidos
+      .filter((pedido) => pedido.status === 'PAGO')
+      .reduce((soma, pedido) => soma + totalPedido(pedido), 0)
+    return (
     <div key={grupo.chave || 'sem-data'}>
-      <h3 className="pedido-dia">{rotuloDia(grupo.chave)}</h3>
+      <h3 className="pedido-dia">
+        {rotuloDia(grupo.chave)}
+        {faturado > 0 ? ` · Faturado ${formatarMoeda(faturado)}` : ''}
+      </h3>
       {grupo.pedidos.map((pedido) => {
         const selo = seloPedido(pedido)
         const encerrado = pedido.status === 'ESTORNADO' || pedido.status === 'CANCELADO'
@@ -602,6 +671,7 @@ function LinhasPedido({ pedidos, bloqueado, onEditar, onEstornar, onCancelar, po
             </div>
             {(pedido.status === 'ATIVO' || pedido.status === 'PAGO') && !bloqueado ? (
               <MenuAcoes
+                direto={direto}
                 somenteEstorno={pedido.status === 'PAGO'}
                 podeEditar={podeEditar}
                 podeEstornar={pedido.status === 'PAGO' ? podeEstornarPago : podeEstornar}
@@ -615,10 +685,12 @@ function LinhasPedido({ pedidos, bloqueado, onEditar, onEstornar, onCancelar, po
         )
       })}
     </div>
-  ))
+    )
+  })
 }
 
 function PedidosGestor({ casa = false }) {
+  const sessao = lerSessao()
   const bloqueado = visaoBloqueada()
   const { tem, pronto } = useFuncoes()
   const podeLancar = pronto && tem('PEDIDO_LANCAR')
@@ -656,7 +728,7 @@ function PedidosGestor({ casa = false }) {
   const [aviso, setAviso] = useState('')
 
   async function carregar() {
-    const cardapio = tem('PEDIDO_LANCAR') && !casa
+    const cardapio = tem('PEDIDO_LANCAR') || tem('PEDIDO_EDITAR')
     const equipe = !casa && (tem('PEDIDO_LANCAR') || tem('COMANDA_FECHAR') || tem('COMANDA_LER'))
     const [listaPedidos, listaUsuarios, listaCategorias, listaProdutos] = await Promise.all([
       tem('PEDIDO_LER') ? apiJson(casa ? `${endpoints.pedidos}?casa=true` : endpoints.pedidos) : Promise.resolve([]),
@@ -729,7 +801,7 @@ function PedidosGestor({ casa = false }) {
       })
       setItens([])
       setMostrarFormulario(false)
-      setAviso('Pedido registrado em nome do usuário.')
+      setAviso('Pedido registrado.')
       await carregar()
     } catch (falha) {
       setErro(falha.message)
@@ -813,6 +885,10 @@ function PedidosGestor({ casa = false }) {
     ? abertas.length
     : new Set(ativos.map((pedido) => pedido.comandaId).filter(Boolean)).size
   const mesasOcupadas = new Set(ativos.map((pedido) => pedido.mesa).filter((valor) => valor != null)).size
+  const hoje = diaChave(new Date())
+  const faturadoHoje = pedidos
+    .filter((pedido) => pedido.status === 'PAGO' && diaChave(pedido.dataHora) === hoje)
+    .reduce((soma, pedido) => soma + totalPedido(pedido), 0)
   const itensVendidos = pagos.reduce(
     (soma, pedido) => soma + (pedido.itens || []).reduce((parcial, item) => parcial + Number(item.quantidade || 0), 0),
     0,
@@ -834,6 +910,7 @@ function PedidosGestor({ casa = false }) {
   const ativosVisiveis = visiveis.filter((pedido) => pedido.status === 'ATIVO')
   const historicoVisiveis = visiveis.filter((pedido) => pedido.status !== 'ATIVO')
   const totalSelecionado = comandaFiltro ? totalDaComanda(pedidos, comandaFiltro) : null
+  const totalMesaSelecionada = mesaFiltro ? totalDaMesa(ativos, mesaFiltro) : null
   const mesasOpcoes = [...new Set(pedidos.map((pedido) => pedido.mesa).filter((valor) => valor != null))]
     .sort((a, b) => Number(a) - Number(b))
   const comandasOpcoes = [...new Map(
@@ -862,8 +939,11 @@ function PedidosGestor({ casa = false }) {
           />
           {!bloqueado && podeLancar && !casa ? (
             <Botao
-              texto={mostrarFormulario ? 'Fechar lançamento' : 'Registrar pedido como usuário'}
-              onClick={() => setMostrarFormulario((atual) => !atual)}
+              texto={mostrarFormulario ? 'Fechar lançamento' : 'Registrar pedido'}
+              onClick={() => {
+                setMostrarFormulario((atual) => !atual)
+                if (!mostrarFormulario && !usuarioId && sessao.usuarioId) setUsuarioId(String(sessao.usuarioId))
+              }}
             />
           ) : null}
         </div>
@@ -876,9 +956,15 @@ function PedidosGestor({ casa = false }) {
               id="usuario"
               rotulo="Usuário"
               valor={usuarioId}
-              onChange={setUsuarioId}
+              onChange={(valor) => {
+                setUsuarioId(valor)
+                setComandaId('')
+                setMesa('')
+                setNomeCliente('')
+              }}
               opcoes={[
                 { valor: '', rotulo: 'Selecione' },
+                ...(sessao.usuarioId ? [{ valor: String(sessao.usuarioId), rotulo: `${sessao.usuarioNome || 'Gestor'} (gestor)` }] : []),
                 ...usuarios.map((usuario) => ({ valor: String(usuario.id), rotulo: usuario.nome })),
               ]}
             />
@@ -894,7 +980,10 @@ function PedidosGestor({ casa = false }) {
               }}
               opcoes={[
                 { valor: '', rotulo: podeAbrir ? 'Abrir comanda nova' : 'Selecione' },
-                ...comandas.filter((comanda) => comanda.aberta).map((comanda) => ({ valor: String(comanda.id), rotulo: rotuloComanda(comanda) })),
+                ...comandas.filter((comanda) => comanda.aberta).map((comanda) => ({
+                  valor: String(comanda.id),
+                  rotulo: `${rotuloComanda(comanda)} · ${comanda.nomeCliente || 'Sem cliente'} · Mesa ${comanda.mesa ?? '—'}`,
+                })),
               ]}
             />
             <FormField id="mesa" rotulo="Mesa" tipo="number" valor={mesa} onChange={setMesa} obrigatorio />
@@ -908,25 +997,31 @@ function PedidosGestor({ casa = false }) {
           <CartaoMetrica rotulo="Comandas abertas" valor={comandasAbertas} />
           <CartaoMetrica rotulo="Mesas ocupadas" valor={mesasOcupadas} />
           <CartaoMetrica rotulo="Itens vendidos (pagos)" valor={itensVendidos} />
+          <CartaoMetrica rotulo="Faturado hoje" valor={formatarMoeda(faturadoHoje)} />
         </section>
         {abertas.length ? (
           <section className="pagina__painel comandas-fechar">
             <Titulo nivel={2} texto="Comandas abertas" />
             <p>Fechar a comanda marca os pedidos ativos como pagos. Pedidos ainda abertos não entram nas análises.</p>
             <ul>
-              {abertas.map((comanda) => {
-                const total = totalDaComanda(pedidos, comanda.id)
+              {agruparComandasPorMesa(abertas).map((grupo) => {
+                const totalMesa = grupo.comandas.reduce((soma, comanda) => soma + totalDaComanda(pedidos, comanda.id), 0)
                 return (
-                  <li key={comanda.id}>
-                    <span>
-                      #{comanda.numero ?? comanda.id}
-                      {' · Mesa '}
-                      {comanda.mesa ?? '—'}
-                      {' · '}
-                      {comanda.nomeCliente || 'Sem cliente'}
-                      {total != null ? ` · Total ${formatarMoeda(total)}` : ''}
-                    </span>
-                    {podeFechar ? <Botao texto="Fechar" variante="secundario" desabilitado={bloqueado} onClick={() => setFechando(comanda)} /> : null}
+                  <li key={grupo.chave}>
+                    <strong>Mesa {grupo.mesa} · Total da mesa {formatarMoeda(totalMesa)}</strong>
+                    <ul>
+                      {grupo.comandas.map((comanda) => (
+                        <li key={comanda.id}>
+                          <span>
+                            #{comanda.numero ?? comanda.id}
+                            {' · '}
+                            {comanda.nomeCliente || 'Sem cliente'}
+                            {` · Total ${formatarMoeda(totalDaComanda(pedidos, comanda.id))}`}
+                          </span>
+                          {podeFechar ? <Botao texto="Fechar" variante="secundario" desabilitado={bloqueado} onClick={() => setFechando(comanda)} /> : null}
+                        </li>
+                      ))}
+                    </ul>
                   </li>
                 )
               })}
@@ -981,7 +1076,10 @@ function PedidosGestor({ casa = false }) {
             />
             <Botao texto="Limpar filtros" variante="fantasma" onClick={limparFiltros} />
           </div>
-          {totalSelecionado != null ? (
+          {totalMesaSelecionada != null ? (
+            <p className="pedido-comanda-total">Total da mesa {formatarMoeda(totalMesaSelecionada)}</p>
+          ) : null}
+          {comandaFiltro ? (
             <p className="pedido-comanda-total">Total da comanda {formatarMoeda(totalSelecionado)}</p>
           ) : null}
           <Titulo nivel={2} texto="Pedidos ativos" />
@@ -989,6 +1087,7 @@ function PedidosGestor({ casa = false }) {
           <LinhasPedido
             pedidos={ativosVisiveis}
             bloqueado={bloqueado}
+            direto={casa}
             podeEditar={podeEditar}
             podeEstornar={podeEstornar}
             podeEstornarPago={podeEstornarPago}
@@ -1003,6 +1102,7 @@ function PedidosGestor({ casa = false }) {
           <LinhasPedido
             pedidos={historicoVisiveis}
             bloqueado={bloqueado}
+            direto={casa}
             podeEditar={podeEditar}
             podeEstornar={podeEstornar}
             podeEstornarPago={podeEstornarPago}

@@ -12,8 +12,8 @@ import { endpoints } from '../../../services/endpoints'
 import { emVisaoGestor, lerSessao, visaoBloqueada } from '../../../utils/sessao'
 import { useFuncoes } from '../../../utils/funcoes'
 import { formatarBooleano, rotuloPerfil, rotuloStatus, validarSenha, DICA_SENHA } from '../../../utils/formatacao'
-import { EscolhaFuncoes, PainelFuncoes, funcoesAtribuiveis, podeAtribuir } from './FuncoesEquipe'
-import { cargosPara, funcoesPara } from '../../../utils/cargos'
+import { EscolhaFuncoes, PainelFuncoes, podeAtribuir } from './FuncoesEquipe'
+import { cargosPara } from '../../../utils/cargos'
 
 const perfis = [
   { valor: 'GESTOR', rotulo: 'Gestor' },
@@ -40,12 +40,17 @@ function Cadastros() {
   const [alvoFuncoes, setAlvoFuncoes] = useState(null)
   const [cargosDisponiveis, setCargosDisponiveis] = useState([])
   const [cargosNovos, setCargosNovos] = useState([])
-  const [funcoesNovas, setFuncoesNovas] = useState([])
   const { tem, pronto, lista: minhasFuncoes } = useFuncoes()
   const podeUsuario = pronto && tem('EQUIPE_USUARIO_GERIR')
   const podeGestorFuncao = pronto && tem('EQUIPE_GESTOR_GERIR')
   const podeSenhaFuncao = pronto && tem('EQUIPE_SENHA_REDEFINIR')
   const podeAtribuirFuncoes = pronto && podeAtribuir(minhasFuncoes)
+
+  function cargoPadrao(alvo) {
+    const nome = alvo === 'GESTOR' ? 'Gerente' : 'Atendente'
+    const padrao = cargosPara(cargosDisponiveis, alvo).find((cargo) => cargo.nome === nome)
+    return padrao ? [padrao.id] : []
+  }
 
   async function carregar() {
     const pedidos = [apiJson(gestor ? endpoints.usuarios : `${endpoints.usuarios}${restauranteId ? `?restauranteId=${restauranteId}` : ''}`)]
@@ -65,10 +70,16 @@ function Cadastros() {
 
   useEffect(() => {
     const alvo = gestor ? 'USUARIO' : perfil
-    const permitidos = new Set(cargosPara(cargosDisponiveis, alvo).map((cargo) => cargo.id))
-    setCargosNovos((lista) => lista.filter((id) => permitidos.has(id)))
-    setFuncoesNovas((lista) => funcoesPara(lista, alvo))
-  }, [perfil, cargosDisponiveis])
+    const permitidos = cargosPara(cargosDisponiveis, alvo)
+    const ids = new Set(permitidos.map((cargo) => cargo.id))
+    setCargosNovos((lista) => {
+      const validos = lista.filter((id) => ids.has(id))
+      if (validos.length > 0) return validos
+      const nome = alvo === 'GESTOR' ? 'Gerente' : 'Atendente'
+      const padrao = permitidos.find((cargo) => cargo.nome === nome)
+      return padrao ? [padrao.id] : []
+    })
+  }, [perfil, cargosDisponiveis, gestor])
 
   useEffect(() => {
     if (!podeAtribuirFuncoes) return undefined
@@ -186,9 +197,8 @@ function Cadastros() {
           perfil: gestor ? 'USUARIO' : perfil,
           restauranteId: gestor ? null : Number(restauranteId),
         }
-        if (podeAtribuirFuncoes) {
+        if (podeAtribuirFuncoes && cargosNovos.length > 0) {
           corpo.cargos = cargosNovos
-          corpo.authorities = funcoesNovas
         }
         await apiJson(endpoints.usuarios, {
           method: 'POST',
@@ -198,8 +208,7 @@ function Cadastros() {
       setNome('')
       setEmail('')
       setSenha('')
-      setCargosNovos([])
-      setFuncoesNovas([])
+      setCargosNovos(cargoPadrao(gestor ? 'USUARIO' : perfil))
       setEditandoUsuario(null)
       setAlvoFuncoes(null)
       setAviso(editandoUsuario ? 'Cadastro atualizado.' : 'Cadastro criado.')
@@ -214,8 +223,7 @@ function Cadastros() {
     setNome('')
     setEmail('')
     setSenha('')
-    setCargosNovos([])
-    setFuncoesNovas([])
+    setCargosNovos(cargoPadrao(gestor ? 'USUARIO' : perfil))
     setAlvoFuncoes(null)
   }
 
@@ -415,10 +423,8 @@ function Cadastros() {
                 <EscolhaFuncoes
                   cargos={cargosPara(cargosDisponiveis, gestor ? 'USUARIO' : perfil)}
                   cargosMarcados={cargosNovos}
+                  perfil={gestor ? 'USUARIO' : perfil}
                   onCargo={(id) => setCargosNovos((lista) => (lista.includes(id) ? lista.filter((item) => item !== id) : [...lista, id]))}
-                  funcoes={funcoesPara(funcoesAtribuiveis(minhasFuncoes, gestor), gestor ? 'USUARIO' : perfil)}
-                  funcoesMarcadas={funcoesNovas}
-                  onFuncao={(authority) => setFuncoesNovas((lista) => (lista.includes(authority) ? lista.filter((item) => item !== authority) : [...lista, authority]))}
                 />
               ) : null}
               <div className="formulario__acoes">

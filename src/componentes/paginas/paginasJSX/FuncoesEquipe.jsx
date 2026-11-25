@@ -45,14 +45,15 @@ function ResumoFuncoes({ titulo, authorities, vazio }) {
   )
 }
 
-export function EscolhaFuncoes({ cargos, cargosMarcados, onCargo, funcoes, funcoesMarcadas, onFuncao }) {
+export function EscolhaFuncoes({ cargos, cargosMarcados, onCargo, perfil = 'USUARIO' }) {
   const escolhidas = unirFuncoes(
     (cargos || []).filter((cargo) => cargosMarcados.includes(cargo.id)).flatMap((cargo) => cargo.authorities || []),
-    funcoesMarcadas,
   )
+  const pacote = perfil === 'GESTOR' ? 'Gerente' : 'Atendente'
   return (
     <div>
-      <Titulo nivel={3} texto="Funções" />
+      <Titulo nivel={3} texto="Cargo" />
+      <p>A conta entra com as funções do cargo. Sem marcação, entra como {pacote}.</p>
       {(cargos || []).map((cargo) => (
         <Checkbox
           key={cargo.id}
@@ -62,8 +63,11 @@ export function EscolhaFuncoes({ cargos, cargosMarcados, onCargo, funcoes, funco
           onChange={() => onCargo(cargo.id)}
         />
       ))}
-      <ListaFuncoes authorities={funcoes} marcadas={funcoesMarcadas} onAlternar={onFuncao} idPrefixo="novo-cadastro" />
-      <ResumoFuncoes titulo="Funções desta conta" authorities={escolhidas} vazio="Nenhuma função selecionada. A conta entra sem funções." />
+      <ResumoFuncoes
+        titulo="Funções deste cargo"
+        authorities={escolhidas}
+        vazio={`Nenhum cargo marcado. A conta entra como ${pacote}.`}
+      />
     </div>
   )
 }
@@ -162,8 +166,10 @@ export function PainelFuncoes({ usuario, minhas, gestor, onFechar }) {
             onChange={() => alternarCargo(cargo.id)}
           />
         ))}
-        <Botao texto={avancado ? 'Ocultar funções avulsas' : 'Funções avulsas'} variante="fantasma" onClick={() => setAvancado((valor) => !valor)} />
-        {avancado ? (
+        {!gestor ? (
+          <Botao texto={avancado ? 'Ocultar funções avulsas' : 'Funções avulsas'} variante="fantasma" onClick={() => setAvancado((valor) => !valor)} />
+        ) : null}
+        {!gestor && avancado ? (
           <ListaFuncoes authorities={opcoes} marcadas={avulsas} onAlternar={alternarAvulsa} idPrefixo={`equipe-${usuario.id}`} />
         ) : null}
         <ResumoFuncoes
