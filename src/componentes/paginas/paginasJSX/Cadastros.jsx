@@ -175,11 +175,20 @@ function Cadastros() {
       setEmail('')
       setSenha('')
       setEditandoUsuario(null)
+      setAlvoFuncoes(null)
       setAviso(editandoUsuario ? 'Cadastro atualizado.' : 'Cadastro criado.')
       await carregar()
     } catch (falha) {
       setErro(falha.message)
     }
+  }
+
+  function cancelarEdicao() {
+    setEditandoUsuario(null)
+    setNome('')
+    setEmail('')
+    setSenha('')
+    setAlvoFuncoes(null)
   }
 
   function editarUsuario(usuario) {
@@ -189,15 +198,20 @@ function Cadastros() {
     setSenha('')
     setPerfil(usuario.perfil)
     setRestauranteId(usuario.restauranteId ? String(usuario.restauranteId) : restauranteId)
+    setAlvoFuncoes(null)
   }
 
   async function alternarUsuario(usuario) {
     setErro('')
     try {
+      const ativo = !usuario.ativo
       await apiJson(endpoints.usuario(usuario.id), {
         method: 'PUT',
-        body: JSON.stringify({ ativo: !usuario.ativo }),
+        body: JSON.stringify({ ativo }),
       })
+      setEditandoUsuario((atual) => (
+        atual && String(atual.id) === String(usuario.id) ? { ...atual, ativo } : atual
+      ))
       setAviso(usuario.ativo ? 'Perfil inativado.' : 'Perfil reativado.')
       await carregar()
     } catch (falha) {
@@ -211,6 +225,7 @@ function Cadastros() {
     setErro('')
     try {
       await apiJson(endpoints.usuario(usuario.id), { method: 'DELETE' })
+      if (editandoUsuario && String(editandoUsuario.id) === String(usuario.id)) cancelarEdicao()
       setAviso('Perfil deletado.')
       await carregar()
     } catch (falha) {
@@ -351,10 +366,35 @@ function Cadastros() {
               <div className="formulario__acoes">
                 <Botao texto={editandoUsuario ? 'Salvar' : 'Cadastrar'} tipo="submit" />
                 {editandoUsuario ? (
-                  <Botao texto="Cancelar" variante="fantasma" onClick={() => { setEditandoUsuario(null); setNome(''); setEmail(''); setSenha('') }} />
+                  <Botao
+                    texto={editandoUsuario.ativo ? 'Inativar' : 'Reativar'}
+                    variante="fantasma"
+                    onClick={() => alternarUsuario(editandoUsuario)}
+                  />
+                ) : null}
+                {editandoUsuario && podeSenha(editandoUsuario) ? (
+                  <Botao texto="Nova senha" variante="fantasma" onClick={() => redefinirSenha(editandoUsuario)} />
+                ) : null}
+                {editandoUsuario && podeAtribuir(minhasFuncoes) ? (
+                  <Botao
+                    texto={alvoFuncoes ? 'Ocultar funções' : 'Atribuir funções'}
+                    variante="secundario"
+                    onClick={() => setAlvoFuncoes(alvoFuncoes ? null : editandoUsuario)}
+                  />
+                ) : null}
+                {editandoUsuario ? (
+                  <Botao texto="Cancelar" variante="fantasma" onClick={cancelarEdicao} />
                 ) : null}
               </div>
             </form>
+          ) : null}
+          {editandoUsuario && alvoFuncoes ? (
+            <PainelFuncoes
+              usuario={alvoFuncoes}
+              minhas={minhasFuncoes}
+              gestor={gestor}
+              onFechar={() => setAlvoFuncoes(null)}
+            />
           ) : null}
           {!gestor ? (
             <FormFieldSelect id="filtro-restaurante" rotulo="Filtrar restaurante" valor={restauranteId} onChange={setRestauranteId} opcoes={opcoesRestaurante} />
@@ -373,32 +413,21 @@ function Cadastros() {
                 papel: 'acoes',
                 celula: (usuario) => (!bloqueado ? (
                   <>
-                    <Botao texto="Editar" variante="secundario" onClick={() => editarUsuario(usuario)} />
                     <Botao
-                      texto={usuario.ativo ? 'Inativar' : 'Reativar'}
-                      variante="fantasma"
-                      onClick={() => alternarUsuario(usuario)}
+                      texto={editandoUsuario && String(editandoUsuario.id) === String(usuario.id) ? 'Editando' : 'Editar'}
+                      variante="secundario"
+                      onClick={() => (
+                        editandoUsuario && String(editandoUsuario.id) === String(usuario.id)
+                          ? cancelarEdicao()
+                          : editarUsuario(usuario)
+                      )}
                     />
                     <Botao texto="Deletar" variante="perigo" onClick={() => deletarUsuario(usuario)} />
-                    {podeSenha(usuario) ? (
-                      <Botao texto="Nova senha" variante="fantasma" onClick={() => redefinirSenha(usuario)} />
-                    ) : null}
-                    {podeAtribuir(minhasFuncoes) ? (
-                      <Botao texto="Atribuir funções" variante="secundario" onClick={() => setAlvoFuncoes(usuario)} />
-                    ) : null}
                   </>
                 ) : null),
               },
             ]}
           />
-          {alvoFuncoes ? (
-            <PainelFuncoes
-              usuario={alvoFuncoes}
-              minhas={minhasFuncoes}
-              gestor={gestor}
-              onFechar={() => setAlvoFuncoes(null)}
-            />
-          ) : null}
         </section>
       </div>
     </TemplateAutenticado>

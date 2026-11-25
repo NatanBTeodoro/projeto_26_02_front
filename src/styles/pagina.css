@@ -784,6 +784,11 @@
   list-style: none;
 }
 
+.lista-funcoes li > span {
+  display: block;
+  padding: 0.4rem 0.55rem;
+}
+
 .lista-funcoes li label {
   display: flex;
   align-items: center;
