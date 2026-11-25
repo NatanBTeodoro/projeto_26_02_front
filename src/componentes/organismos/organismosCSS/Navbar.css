@@ -9,7 +9,7 @@
   flex: 0 0 var(--largura-menu);
   min-height: 100vh;
   background:
-    linear-gradient(180deg, rgba(196, 92, 38, 0.18), transparent 28%),
+    linear-gradient(180deg, color-mix(in srgb, var(--cor-marca) 28%, transparent), transparent 28%),
     var(--cor-oliva);
   color: var(--cor-branco);
   display: flex;
@@ -34,7 +34,7 @@
   gap: 0.35rem;
   margin: 0;
   font-size: 0.82rem;
-  color: rgba(255, 253, 249, 0.78);
+  color: color-mix(in srgb, var(--cor-branco) 78%, transparent);
   word-break: break-all;
 }
 
@@ -59,12 +59,12 @@
   font-size: 0.68rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 253, 249, 0.5);
+  color: color-mix(in srgb, var(--cor-branco) 50%, transparent);
 }
 
 .navbar .botao--fantasma {
-  color: rgba(255, 253, 249, 0.9);
-  border-color: rgba(255, 253, 249, 0.22);
+  color: color-mix(in srgb, var(--cor-branco) 90%, transparent);
+  border-color: color-mix(in srgb, var(--cor-branco) 22%, transparent);
 }
 
 @media (max-width: 860px) {
@@ -98,7 +98,7 @@
     position: fixed;
     inset: 0;
     border: 0;
-    background: rgba(28, 36, 48, 0.45);
+    background: color-mix(in srgb, var(--cor-velo) 45%, transparent);
     z-index: 35;
   }
 

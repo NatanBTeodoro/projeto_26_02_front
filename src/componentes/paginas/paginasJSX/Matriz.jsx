@@ -86,8 +86,9 @@ function Matriz() {
         />
         <MensagemErro texto={erro} />
         <form className="formulario pagina__painel" onSubmit={consultar}>
-          <label htmlFor="restaurante">Restaurante</label>
-          <Select
+          <div className="form-field">
+            <label className="label" htmlFor="restaurante">Restaurante</label>
+            <Select
             id="restaurante"
             valor={restauranteId}
             onChange={setRestauranteId}
@@ -98,20 +99,23 @@ function Matriz() {
                 rotulo: rotuloRestaurante(restaurante),
               })),
             ]}
-          />
+            />
+          </div>
           <div className="formulario__linha">
             <FormField id="de" rotulo="De" tipo="date" valor={de} onChange={setDe} obrigatorio />
             <FormField id="ate" rotulo="Até" tipo="date" valor={ate} onChange={setAte} obrigatorio />
           </div>
-          <label>
-            <input
-              type="checkbox"
-              checked={mostrarFaixas}
-              onChange={(evento) => setMostrarFaixas(evento.target.checked)}
-            />
-            {' '}Colorir o gráfico por faixa
-          </label>
-          <Botao texto="Calcular" tipo="submit" />
+          <div className="formulario__acoes">
+            <label className="formulario__opcao">
+              <input
+                type="checkbox"
+                checked={mostrarFaixas}
+                onChange={(evento) => setMostrarFaixas(evento.target.checked)}
+              />
+              Colorir o gráfico por faixa
+            </label>
+            <Botao texto="Calcular" tipo="submit" />
+          </div>
         </form>
         {escolhido?.status === 'FECHADO' ? <p>Este restaurante está fechado e não pode ser editado.</p> : null}
         {curva ? (
@@ -120,6 +124,10 @@ function Matriz() {
               <section className="pagina__painel cartao">
                 <span>Faturamento</span>
                 <strong>{formatarMoeda(curva.faturamento)}</strong>
+              </section>
+              <section className="pagina__painel cartao">
+                <span>Custo bruto</span>
+                <strong>{formatarMoeda(curva.custoBruto)}</strong>
               </section>
               <section className="pagina__painel cartao">
                 <span>Lucro bruto</span>
@@ -137,6 +145,9 @@ function Matriz() {
             <section className="pagina__painel">
               <h2>Curva ABC por produto</h2>
               <p>A faixa diz quanto o produto pesa no lucro. A classe diz que tipo de produto ele é.</p>
+              {curva.coberturaDeCusto != null ? (
+                <p>margem calculada sobre {formatarPercentual(curva.coberturaDeCusto)} do faturamento</p>
+              ) : null}
               {curva.linhasSemCusto > 0 ? (
                 <p>
                   {curva.linhasSemCusto} item(ns) sem custo ficaram fora do lucro.
@@ -151,6 +162,7 @@ function Matriz() {
                       <th>Produto</th>
                       <th>Qtd. vendida</th>
                       <th>Lucro</th>
+                      <th>Custo bruto</th>
                       <th>Participação</th>
                       <th>Acumulado</th>
                       <th>Margem</th>
@@ -165,6 +177,7 @@ function Matriz() {
                         <td>{item.nome}{item.dadoIncompleto ? ' (dado incompleto)' : ''}</td>
                         <td>{item.quantidade ?? '—'}</td>
                         <td>{formatarMoeda(item.lucro)}</td>
+                        <td>{formatarMoeda(item.custoBruto)}</td>
                         <td>{formatarPercentual(item.participacao)}</td>
                         <td>{formatarPercentual(item.acumulado)}</td>
                         <td>{formatarPercentual(item.margemPercentual)}</td>

@@ -70,6 +70,7 @@ function TabelaCurva({ curva, mostrarFaixas }) {
           <tr>
             <th>Nome</th>
             <th>Lucro</th>
+            <th>Custo bruto</th>
             <th>Participação</th>
             <th>Acumulado</th>
             {mostrarFaixas ? <th>Faixa</th> : null}
@@ -83,6 +84,7 @@ function TabelaCurva({ curva, mostrarFaixas }) {
                 {item.dadoIncompleto ? ' (dado incompleto)' : ''}
               </td>
               <td>{formatarMoeda(item.lucro)}</td>
+              <td>{formatarMoeda(item.custoBruto)}</td>
               <td>{formatarPercentual(item.participacao)}</td>
               <td>{formatarPercentual(item.acumulado)}</td>
               {mostrarFaixas ? <td>{item.faixa}</td> : null}
@@ -207,22 +209,26 @@ function DashboardAdmin() {
         />
         <MensagemErro texto={erro} />
         <Periodo de={de} ate={ate} setDe={setDe} setAte={setAte} onSubmit={consultar}>
-          <label htmlFor="modelo">Modelo analítico</label>
-          <Select
-            id="modelo"
-            valor={modelo}
-            onChange={setModelo}
-            opcoes={(modelos.length ? modelos : [{ codigo: 'CURVA_ABC', nome: 'Curva ABC (Pareto)' }])
-              .map((item) => ({ valor: item.codigo, rotulo: item.nome }))}
-          />
-          <label>
-            <input
-              type="checkbox"
-              checked={mostrarFaixas}
-              onChange={(evento) => setMostrarFaixas(evento.target.checked)}
-            />
-            {' '}Mostrar faixas A, B e C
-          </label>
+          <div className="formulario__linha">
+            <div className="form-field">
+              <label className="label" htmlFor="modelo">Modelo analítico</label>
+              <Select
+                id="modelo"
+                valor={modelo}
+                onChange={setModelo}
+                opcoes={(modelos.length ? modelos : [{ codigo: 'CURVA_ABC', nome: 'Curva ABC (Pareto)' }])
+                  .map((item) => ({ valor: item.codigo, rotulo: item.nome }))}
+              />
+            </div>
+            <label className="formulario__opcao">
+              <input
+                type="checkbox"
+                checked={mostrarFaixas}
+                onChange={(evento) => setMostrarFaixas(evento.target.checked)}
+              />
+              Mostrar faixas A, B e C
+            </label>
+          </div>
         </Periodo>
         {painel ? (
           <>
@@ -314,6 +320,7 @@ function DashboardAdmin() {
                       ))}
                     </div>
                     <p>{formatarPercentual(restaurante.percentualEstrelas)} estrelas · {restaurante.pedidos} pedidos · {restaurante.produtosDistintos} produtos</p>
+                    <p>Custo bruto {formatarMoeda(restaurante.custoBruto)} · cobertura {formatarPercentual(restaurante.coberturaDeCusto)}</p>
                     <p>
                       Vendidos sem custo <strong className={`qualidade qualidade--${tomQualidade(restaurante.vendidosSemCusto)}`}>{formatarPercentual(restaurante.vendidosSemCusto)}</strong>
                       {' · '}
@@ -327,10 +334,16 @@ function DashboardAdmin() {
         ) : null}
         {curva ? (
           <>
-            <section className="pagina__painel cartao">
-              <span>Lucro bruto</span>
-              <strong>{formatarMoeda(curva.lucroBruto)}</strong>
-            </section>
+            <div className="cartoes">
+              <section className="pagina__painel cartao">
+                <span>Custo bruto</span>
+                <strong>{formatarMoeda(curva.custoBruto)}</strong>
+              </section>
+              <section className="pagina__painel cartao">
+                <span>Lucro bruto</span>
+                <strong>{formatarMoeda(curva.lucroBruto)}</strong>
+              </section>
+            </div>
             {curva.linhasSemCusto > 0 ? (
               <p>
                 {curva.linhasSemCusto} item(ns) sem custo ficaram fora do lucro e estão marcados como dado incompleto.
@@ -408,6 +421,10 @@ function DashboardGestor() {
                 <strong>{formatarMoeda(painel.faturamento)}</strong>
               </section>
               <section className="pagina__painel cartao">
+                <span>Custo bruto</span>
+                <strong>{formatarMoeda(painel.custoBruto)}</strong>
+              </section>
+              <section className="pagina__painel cartao">
                 <span>Lucro bruto</span>
                 <strong>{formatarMoeda(painel.lucroBruto)}</strong>
               </section>
@@ -424,6 +441,9 @@ function DashboardGestor() {
                 <strong>{formatarMoeda(painel.ticketMedio)}</strong>
               </section>
             </div>
+            {painel.coberturaDeCusto != null ? (
+              <p>margem calculada sobre {formatarPercentual(painel.coberturaDeCusto)} do faturamento</p>
+            ) : null}
             <section className="pagina__painel">
               <h2>Faturamento por dia</h2>
               <div className="grafico">
@@ -480,8 +500,8 @@ function DashboardGestor() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div>
-              <label htmlFor="filtro-classe">Classe</label>
+            <div className="form-field campo-curto">
+              <label className="label" htmlFor="filtro-classe">Classe</label>
               <Select
                 id="filtro-classe"
                 valor={classeFiltro}
@@ -503,6 +523,7 @@ function DashboardGestor() {
                     <th>Popularidade</th>
                     <th>Lucro unitário</th>
                     <th>Lucro total</th>
+                    <th>Custo bruto</th>
                     <th>Margem</th>
                     <th className="tabela__classe">Classe</th>
                     <th>Sugestão</th>
@@ -517,6 +538,7 @@ function DashboardGestor() {
                       <td>{formatarPercentual(item.popularidade)}</td>
                       <td>{formatarMoeda(item.margem)}</td>
                       <td>{item.margem == null ? '—' : formatarMoeda(Number(item.margem) * Number(item.quantidade))}</td>
+                      <td>{formatarMoeda(item.custoBruto)}</td>
                       <td>{formatarPercentual(item.margemPercentual)}</td>
                       <td className="tabela__classe">
                         <span className={`selo selo--${item.classe}`}>{rotuloClasse(item.classe)}</span>

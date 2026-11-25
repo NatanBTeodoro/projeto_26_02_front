@@ -20,8 +20,8 @@
 }
 
 .logo__marca i:nth-child(2) { background: var(--cor-dourado); }
-.logo__marca i:nth-child(3) { background: #8d3b32; }
-.logo__marca i:nth-child(4) { background: #7d9a84; }
+.logo__marca i:nth-child(3) { background: var(--cor-cao); }
+.logo__marca i:nth-child(4) { background: color-mix(in srgb, var(--cor-oliva-claro) 55%, var(--cor-branco)); }
 
 .logo__textos {
   display: flex;

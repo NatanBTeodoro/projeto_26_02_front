@@ -6,9 +6,6 @@ import { endpoints } from '../../../services/endpoints'
 
 const BLOQUEADAS_GESTOR = [
   'EQUIPE_GESTOR_GERIR',
-  'EQUIPE_PERFIL_TROCAR',
-  'REDE_VER',
-  'RESTAURANTE_GERIR',
   'PLATAFORMA_TI_GERIR',
   'PLATAFORMA_ADMIN_GERIR',
 ]
@@ -19,36 +16,51 @@ export function podeAtribuir(minhas) {
 
 export function PainelFuncoes({ usuario, minhas, gestor, onFechar }) {
   const [atuais, setAtuais] = useState([])
-  const [marcadas, setMarcadas] = useState([])
+  const [cargos, setCargos] = useState([])
+  const [cargosMarcados, setCargosMarcados] = useState([])
+  const [avulsas, setAvulsas] = useState([])
   const [erro, setErro] = useState('')
+  const [avancado, setAvancado] = useState(false)
 
   const opcoes = (minhas || []).filter((authority) => !gestor || !BLOQUEADAS_GESTOR.includes(authority))
 
   useEffect(() => {
-    apiJson(endpoints.funcoesUsuario(usuario.id))
-      .then((linhas) => {
+    Promise.all([
+      apiJson(endpoints.funcoesUsuario(usuario.id)),
+      apiJson(endpoints.cargosAtribuiveis),
+    ])
+      .then(([linhas, lista]) => {
         setAtuais(linhas)
-        setMarcadas(linhas.map((linha) => linha.authority))
+        setCargos(lista)
+        setCargosMarcados([...new Set(linhas.map((linha) => linha.cargoOrigemId).filter(Boolean))])
+        setAvulsas(linhas.filter((linha) => linha.cargoOrigemId == null).map((linha) => linha.authority))
       })
       .catch((falha) => setErro(falha.message))
   }, [usuario.id])
 
-  function alternar(authority) {
-    setMarcadas((lista) => (lista.includes(authority) ? lista.filter((item) => item !== authority) : [...lista, authority]))
+  function alternarCargo(id) {
+    setCargosMarcados((lista) => (lista.includes(id) ? lista.filter((item) => item !== id) : [...lista, id]))
+  }
+
+  function alternarAvulsa(authority) {
+    setAvulsas((lista) => (lista.includes(authority) ? lista.filter((item) => item !== authority) : [...lista, authority]))
   }
 
   async function salvar(evento) {
     evento.preventDefault()
-    const tinha = atuais.map((linha) => linha.authority)
-    const conceder = marcadas.filter((authority) => !tinha.includes(authority))
-    const revogar = tinha.filter((authority) => !marcadas.includes(authority))
+    const cargosAtuais = [...new Set(atuais.map((linha) => linha.cargoOrigemId).filter(Boolean))]
+    const avulsasAtuais = atuais.filter((linha) => linha.cargoOrigemId == null).map((linha) => linha.authority)
     try {
       await apiJson(endpoints.funcoesUsuario(usuario.id), {
         method: 'POST',
         body: JSON.stringify({
           restauranteId: usuario.restauranteId ?? null,
-          conceder,
-          revogar,
+          conceder: [],
+          revogar: [],
+          cargos: cargosMarcados.filter((id) => !cargosAtuais.includes(id)),
+          revogarCargos: cargosAtuais.filter((id) => !cargosMarcados.includes(id)),
+          authorities: avulsas.filter((authority) => !avulsasAtuais.includes(authority)),
+          revogarAuthorities: avulsasAtuais.filter((authority) => !avulsas.includes(authority)),
         }),
       })
       onFechar()
@@ -56,6 +68,8 @@ export function PainelFuncoes({ usuario, minhas, gestor, onFechar }) {
       setErro(falha.message)
     }
   }
+
+  const nomes = Object.fromEntries(cargos.map((cargo) => [cargo.id, cargo.nome]))
 
   return (
     <section className="pagina__painel">
@@ -66,25 +80,37 @@ export function PainelFuncoes({ usuario, minhas, gestor, onFechar }) {
       </p>
       <MensagemErro texto={erro} />
       <ul>
-        {atuais.map((linha) => (
-          <li key={linha.authority}>
-            {linha.authority}
-            {linha.atribuidoPor ? ` · atribuída por ${linha.atribuidoPor}` : ''}
+        {atuais.filter((linha) => linha.cargoOrigemId != null).map((linha) => (
+          <li key={`cargo-${linha.authority}`}>
+            {linha.authority} · cargo {nomes[linha.cargoOrigemId] || linha.cargoOrigemId}
+            {linha.atribuidoPor ? ` · por ${linha.atribuidoPor}` : ''}
+            {linha.atribuidoEm ? ` · ${linha.atribuidoEm}` : ''}
+          </li>
+        ))}
+        {atuais.filter((linha) => linha.cargoOrigemId == null).map((linha) => (
+          <li key={`avulsa-${linha.authority}`}>
+            {linha.authority} · avulsa
+            {linha.atribuidoPor ? ` · por ${linha.atribuidoPor}` : ''}
             {linha.atribuidoEm ? ` · ${linha.atribuidoEm}` : ''}
           </li>
         ))}
       </ul>
       <form onSubmit={salvar}>
-        {opcoes.map((authority) => (
-          <label key={authority}>
-            <input
-              type="checkbox"
-              checked={marcadas.includes(authority)}
-              onChange={() => alternar(authority)}
-            />
-            {authority}
+        <h3>Cargos</h3>
+        {cargos.length === 0 ? <p>Nenhum cargo que você possa atribuir.</p> : null}
+        {cargos.map((cargo) => (
+          <label key={cargo.id}>
+            <input type="checkbox" checked={cargosMarcados.includes(cargo.id)} onChange={() => alternarCargo(cargo.id)} />
+            {cargo.nome}
           </label>
         ))}
+        <button type="button" onClick={() => setAvancado((valor) => !valor)}>Avançado</button>
+        {avancado ? opcoes.map((authority) => (
+          <label key={authority}>
+            <input type="checkbox" checked={avulsas.includes(authority)} onChange={() => alternarAvulsa(authority)} />
+            {authority}
+          </label>
+        )) : null}
         <div className="formulario__acoes">
           <Botao texto="Salvar funções" tipo="submit" />
           <Botao texto="Fechar" variante="fantasma" onClick={onFechar} />

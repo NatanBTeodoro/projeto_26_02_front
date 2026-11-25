@@ -20,18 +20,8 @@
   width: auto;
 }
 
-.pedidos-metricas .metrica {
-  gap: 0.35rem;
-}
-
-.pedidos-metricas .metrica strong {
-  font-size: 1.9rem;
-  line-height: 1;
-}
-
-.pedidos-metricas .metrica span {
-  color: var(--cor-texto-secundario);
-  font-size: 0.85rem;
+.pedidos-metricas {
+  align-items: stretch;
 }
 
 button.mesa-card {
@@ -233,7 +223,7 @@ button.mesa-card {
   position: absolute;
   inset: 0;
   border: 0;
-  background: rgba(20, 18, 16, 0.55);
+  background: color-mix(in srgb, var(--cor-velo) 55%, transparent);
 }
 
 .modal__caixa {

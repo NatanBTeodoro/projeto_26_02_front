@@ -20,7 +20,7 @@ body {
   font-family: var(--fonte-texto);
   color: var(--cor-texto-principal);
   background:
-    radial-gradient(1200px 480px at 100% -10%, rgba(196, 92, 38, 0.08), transparent 55%),
+    radial-gradient(1200px 480px at 100% -10%, color-mix(in srgb, var(--cor-marca) 8%, transparent), transparent 55%),
     var(--cor-fundo);
 }
 

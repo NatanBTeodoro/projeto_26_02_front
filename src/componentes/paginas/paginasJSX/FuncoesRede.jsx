@@ -14,17 +14,21 @@ function FuncoesRede() {
   const [descricao, setDescricao] = useState('')
   const [marcadas, setMarcadas] = useState([])
   const [auditoria, setAuditoria] = useState([])
+  const [cargos, setCargos] = useState([])
+  const [nomeCargo, setNomeCargo] = useState('')
   const [erro, setErro] = useState('')
 
   async function carregar() {
-    const [itens, funcoes, registros] = await Promise.all([
+    const [itens, funcoes, registros, listaCargos] = await Promise.all([
       apiJson(endpoints.funcoesRede),
       apiJson(endpoints.funcoesMinhas),
       apiJson(endpoints.auditoriaPermissoes),
+      apiJson(endpoints.cargosRede),
     ])
     setCatalogo(itens)
     setMinhas(funcoes.filter((authority) => !authority.startsWith('PLATAFORMA_')))
     setAuditoria(registros)
+    setCargos(listaCargos)
   }
 
   useEffect(() => {
@@ -51,6 +55,32 @@ function FuncoesRede() {
     }
   }
 
+  async function criarCargo(evento) {
+    evento.preventDefault()
+    try {
+      await apiJson(endpoints.cargosRede, {
+        method: 'POST',
+        body: JSON.stringify({ nome: nomeCargo, descricao: '', authorities: marcadas }),
+      })
+      setNomeCargo('')
+      setMarcadas([])
+      await carregar()
+    } catch (falha) {
+      setErro(falha.message)
+    }
+  }
+
+  async function desativarCargo(cargo) {
+    try {
+      await apiJson(endpoints.cargoRede(cargo.id), {
+        method: 'PUT',
+        body: JSON.stringify({ ativo: false }),
+      })
+      await carregar()
+    } catch (falha) {
+      setErro(falha.message)
+    }
+  }
   async function desativar(item) {
     try {
       await apiJson(endpoints.funcaoRede(item.id), {
@@ -82,6 +112,34 @@ function FuncoesRede() {
           ))}
           <Botao texto="Criar função" tipo="submit" />
         </form>
+        <h2>Cargos da rede</h2>
+        <form onSubmit={criarCargo}>
+          <FormField id="nome-cargo" rotulo="Nome do cargo" valor={nomeCargo} onChange={setNomeCargo} obrigatorio />
+          <p>As funções marcadas acima entram no cargo.</p>
+          <Botao texto="Criar cargo" tipo="submit" />
+        </form>
+        <table className="tabela">
+          <thead>
+            <tr>
+              <th>Cargo</th>
+              <th>Funções</th>
+              <th>Ativo</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {cargos.map((cargo) => (
+              <tr key={cargo.id}>
+                <td>{cargo.nome}</td>
+                <td>{(cargo.authorities || []).join(', ')}</td>
+                <td>{cargo.ativo ? 'sim' : 'não'}</td>
+                <td>
+                  {cargo.ativo ? <Botao texto="Desativar" variante="fantasma" onClick={() => desativarCargo(cargo)} /> : null}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
         <table className="tabela">
           <thead>
             <tr>

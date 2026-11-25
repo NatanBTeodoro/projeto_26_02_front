@@ -3,7 +3,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
-  color: rgba(255, 253, 249, 0.82);
+  color: color-mix(in srgb, var(--cor-branco) 82%, transparent);
   text-decoration: none;
   border-radius: var(--raio-pequeno);
   padding: 0.45rem 0.65rem;
@@ -19,12 +19,12 @@
 }
 
 .nav-item:hover {
-  background: rgba(255, 253, 249, 0.08);
+  background: color-mix(in srgb, var(--cor-branco) 8%, transparent);
   color: var(--cor-branco);
 }
 
 .nav-item--ativo {
-  background: rgba(196, 92, 38, 0.9);
+  background: var(--cor-marca);
   color: var(--cor-branco);
 }
 

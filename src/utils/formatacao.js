@@ -7,11 +7,11 @@ const ROTULOS_CLASSE = {
 }
 
 export const CORES_CLASSE = {
-  ESTRELA: '#2e7d32',
-  VACA_LEITEIRA: '#1565c0',
-  ENIGMA: '#f9a825',
-  CAO: '#c62828',
-  DADO_INCOMPLETO: '#616161',
+  ESTRELA: 'var(--cor-estrela)',
+  VACA_LEITEIRA: 'var(--cor-vaca)',
+  ENIGMA: 'var(--cor-enigma)',
+  CAO: 'var(--cor-cao)',
+  DADO_INCOMPLETO: 'var(--cor-incompleto)',
 }
 
 export const LEGENDAS_CLASSE = [

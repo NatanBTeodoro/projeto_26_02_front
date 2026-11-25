@@ -15,8 +15,8 @@
 
 .botao--secundario {
   background: transparent;
-  color: var(--cor-oliva);
-  border-color: color-mix(in srgb, var(--cor-oliva) 35%, white);
+  color: var(--cor-oliva-claro);
+  border-color: color-mix(in srgb, var(--cor-oliva-claro) 45%, var(--cor-superficie));
 }
 
 .botao--perigo {
@@ -42,7 +42,7 @@
 }
 
 .botao--secundario:hover:not(.botao--desabilitado) {
-  background: color-mix(in srgb, var(--cor-oliva) 8%, white);
+  background: color-mix(in srgb, var(--cor-oliva-claro) 10%, var(--cor-superficie));
 }
 
 .botao--desabilitado,

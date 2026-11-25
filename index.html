@@ -8,8 +8,7 @@
     <script>
       (function () {
         var salvo = localStorage.getItem('tema')
-        var claro = window.matchMedia('(prefers-color-scheme: light)').matches
-        document.documentElement.dataset.tema = salvo === 'claro' || salvo === 'escuro' ? salvo : (claro ? 'claro' : 'escuro')
+        document.documentElement.dataset.tema = salvo === 'escuro' ? 'escuro' : 'claro'
       })()
     </script>
   </head>

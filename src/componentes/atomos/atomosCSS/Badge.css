@@ -11,20 +11,14 @@
   white-space: nowrap;
 }
 
-.badge--marca { background: color-mix(in srgb, var(--cor-marca) 16%, white); color: var(--cor-marca-escura); }
-.badge--oliva { background: color-mix(in srgb, var(--cor-oliva) 14%, white); color: var(--cor-oliva); }
-.badge--estrela { background: color-mix(in srgb, var(--cor-estrela) 20%, white); color: #6d5314; }
-.badge--vaca { background: color-mix(in srgb, var(--cor-vaca) 16%, white); color: var(--cor-vaca); }
-.badge--enigma { background: color-mix(in srgb, var(--cor-enigma) 16%, white); color: var(--cor-enigma); }
-.badge--cao { background: color-mix(in srgb, var(--cor-cao) 14%, white); color: var(--cor-cao); }
+.badge--marca { background: color-mix(in srgb, var(--cor-marca) 16%, var(--cor-superficie)); color: var(--cor-marca-escura); }
+.badge--oliva { background: color-mix(in srgb, var(--cor-oliva-claro) 16%, var(--cor-superficie)); color: var(--cor-oliva-claro); }
+.badge--estrela { background: color-mix(in srgb, var(--cor-estrela) 20%, var(--cor-superficie)); color: var(--cor-estrela); }
+.badge--vaca { background: color-mix(in srgb, var(--cor-vaca) 16%, var(--cor-superficie)); color: var(--cor-vaca); }
+.badge--enigma { background: color-mix(in srgb, var(--cor-enigma) 16%, var(--cor-superficie)); color: var(--cor-enigma); }
+.badge--cao { background: color-mix(in srgb, var(--cor-cao) 14%, var(--cor-superficie)); color: var(--cor-cao); }
 .badge--observacao { background: var(--cor-creme-escuro); color: var(--cor-observacao); }
 .badge--incompleto { background: var(--cor-aviso-fundo); color: var(--cor-incompleto); }
 .badge--sucesso { background: var(--cor-sucesso-fundo); color: var(--cor-sucesso); }
 .badge--erro { background: var(--cor-erro-fundo); color: var(--cor-erro); }
 .badge--neutro { background: var(--cor-creme-escuro); color: var(--cor-texto-secundario); }
-
-[data-tema="escuro"] .badge--sucesso { background: #1b3328; color: #c8f3da; }
-[data-tema="escuro"] .badge--erro { background: #3a2220; color: #ffd0cb; }
-[data-tema="escuro"] .badge--incompleto { background: #3a3016; color: #ffe7a8; }
-[data-tema="escuro"] .badge--marca { background: #3a2618; color: #ffc7a3; }
-[data-tema="escuro"] .badge--neutro { background: #2c261f; color: #efe6da; }

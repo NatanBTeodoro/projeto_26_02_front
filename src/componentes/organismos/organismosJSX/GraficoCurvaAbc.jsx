@@ -13,9 +13,9 @@ import {
 import { formatarMoeda, formatarPercentual } from '../../../utils/formatacao'
 
 const CORES_FAIXA = {
-  A: '#2e7d32',
-  B: '#f9a825',
-  C: '#c62828',
+  A: 'var(--cor-sucesso)',
+  B: 'var(--cor-estrela)',
+  C: 'var(--cor-cao)',
 }
 
 function GraficoCurvaAbc({ itens, mostrarFaixas }) {
@@ -42,19 +42,19 @@ function GraficoCurvaAbc({ itens, mostrarFaixas }) {
           />
           {mostrarFaixas ? (
             <>
-              <ReferenceLine yAxisId="acumulado" y={80} stroke="#2e7d32" strokeDasharray="4 4" label="80%" />
-              <ReferenceLine yAxisId="acumulado" y={95} stroke="#f9a825" strokeDasharray="4 4" label="95%" />
+              <ReferenceLine yAxisId="acumulado" y={80} stroke="var(--cor-sucesso)" strokeDasharray="4 4" label="80%" />
+              <ReferenceLine yAxisId="acumulado" y={95} stroke="var(--cor-estrela)" strokeDasharray="4 4" label="95%" />
             </>
           ) : null}
           <Bar yAxisId="lucro" dataKey="lucro" name="Lucro">
             {dados.map((barra) => (
               <Cell
                 key={barra.id}
-                fill={mostrarFaixas ? (CORES_FAIXA[barra.faixa] || '#1565c0') : '#1565c0'}
+                fill={mostrarFaixas ? (CORES_FAIXA[barra.faixa] || 'var(--cor-ardosia)') : 'var(--cor-ardosia)'}
               />
             ))}
           </Bar>
-          <Line yAxisId="acumulado" type="monotone" dataKey="acumulado" name="acumulado" stroke="#c45c26" dot />
+          <Line yAxisId="acumulado" type="monotone" dataKey="acumulado" name="acumulado" stroke="var(--cor-marca)" dot />
         </ComposedChart>
       </ResponsiveContainer>
     </div>

@@ -1,4 +1,52 @@
-:root,
+/* Claro é o padrão. O escuro só entra com data-tema="escuro". */
+:root {
+  color-scheme: light;
+  --cor-creme: #f5efe6;
+  --cor-creme-escuro: #ebe2d3;
+  --cor-tinta: #1f1913;
+  --cor-oliva: #243f34;
+  --cor-oliva-claro: #2f5a45;
+  --cor-terracota: #b8501f;
+  --cor-terracota-escuro: #8f3e16;
+  --cor-dourado: #8a6620;
+  --cor-ardosia: #35556e;
+  --cor-branco: #ffffff;
+  --cor-linha: #e3d9ca;
+
+  --cor-marca: var(--cor-terracota);
+  --cor-marca-escura: var(--cor-terracota-escuro);
+  --cor-texto: var(--cor-tinta);
+  --cor-texto-principal: #1f1913;
+  --cor-texto-secundario: #5f5448;
+  --cor-fundo: #faf7f2;
+  --cor-superficie: #ffffff;
+  --cor-erro: #9c2f2a;
+  --cor-erro-fundo: #fbebe8;
+  --cor-sucesso: #1f6a45;
+  --cor-sucesso-fundo: #e8f5ee;
+  --cor-aviso: #8a5a12;
+  --cor-aviso-fundo: #fbf3dc;
+
+  --cor-estrela: #b58a22;
+  --cor-vaca: #2f6b4f;
+  --cor-enigma: #35556e;
+  --cor-cao: #9c2f2a;
+  --cor-observacao: #6a645c;
+  --cor-incompleto: #8a5a12;
+
+  --raio: 16px;
+  --raio-pequeno: 8px;
+  --sombra-leve: 0 1px 2px rgba(28, 36, 48, 0.05), 0 10px 28px rgba(28, 36, 48, 0.06);
+  --sombra-media: 0 16px 40px rgba(28, 36, 48, 0.14);
+  --transicao: 160ms ease;
+  --largura-conteudo: 1120px;
+  --padding-pagina: 1.5rem;
+  --largura-menu: 252px;
+  --fonte-texto: "Outfit", "Segoe UI", sans-serif;
+  --fonte-titulo: "Fraunces", Georgia, serif;
+  --cor-velo: #141210;
+}
+
 [data-tema="escuro"] {
   color-scheme: dark;
   --cor-creme: #1c1815;
@@ -34,53 +82,6 @@
   --cor-observacao: #cbbfaf;
   --cor-incompleto: #f3d48a;
 
-  --raio: 16px;
-  --raio-pequeno: 8px;
   --sombra-leve: 0 1px 2px rgba(0, 0, 0, 0.28), 0 10px 28px rgba(0, 0, 0, 0.24);
   --sombra-media: 0 16px 40px rgba(0, 0, 0, 0.4);
-  --transicao: 160ms ease;
-  --largura-conteudo: 1120px;
-  --padding-pagina: 1.5rem;
-  --largura-menu: 252px;
-  --fonte-texto: "Outfit", "Segoe UI", sans-serif;
-  --fonte-titulo: "Fraunces", Georgia, serif;
-}
-
-[data-tema="claro"] {
-  color-scheme: light;
-  --cor-creme: #f1e8db;
-  --cor-creme-escuro: #e7dccb;
-  --cor-tinta: #2a211a;
-  --cor-oliva: #243f34;
-  --cor-oliva-claro: #2f5a45;
-  --cor-terracota: #b8501f;
-  --cor-terracota-escuro: #8f3e16;
-  --cor-dourado: #9a7424;
-  --cor-ardosia: #35556e;
-  --cor-branco: #fffdf9;
-  --cor-linha: #d6c8b4;
-
-  --cor-marca: var(--cor-terracota);
-  --cor-marca-escura: var(--cor-terracota-escuro);
-  --cor-texto: var(--cor-tinta);
-  --cor-texto-principal: #2a211a;
-  --cor-texto-secundario: #6b5d4f;
-  --cor-fundo: var(--cor-creme);
-  --cor-superficie: #fffaf2;
-  --cor-erro: #9c2f2a;
-  --cor-erro-fundo: #f8e6e2;
-  --cor-sucesso: #1f6a45;
-  --cor-sucesso-fundo: #e3f3ea;
-  --cor-aviso: #8a5a12;
-  --cor-aviso-fundo: #f8efd4;
-
-  --cor-estrela: #9a7424;
-  --cor-vaca: #2f6b4f;
-  --cor-enigma: #35556e;
-  --cor-cao: #9c2f2a;
-  --cor-observacao: #6a645c;
-  --cor-incompleto: #8a5a12;
-
-  --sombra-leve: 0 1px 2px rgba(28, 36, 48, 0.05), 0 10px 28px rgba(28, 36, 48, 0.06);
-  --sombra-media: 0 16px 40px rgba(28, 36, 48, 0.14);
 }

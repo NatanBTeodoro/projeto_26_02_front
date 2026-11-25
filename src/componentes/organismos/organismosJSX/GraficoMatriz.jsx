@@ -63,12 +63,12 @@ function GraficoMatriz({ analise }) {
               label={{ value: 'Lucro unitário (R$)', angle: -90, position: 'insideLeft' }}
             />
             <ZAxis range={[80, 80]} />
-            {limite != null ? <ReferenceLine x={limite} stroke="#888" strokeDasharray="5 5" /> : null}
-            {media != null ? <ReferenceLine y={media} stroke="#888" strokeDasharray="5 5" /> : null}
+            {limite != null ? <ReferenceLine x={limite} stroke="var(--cor-texto-secundario)" strokeDasharray="5 5" /> : null}
+            {media != null ? <ReferenceLine y={media} stroke="var(--cor-texto-secundario)" strokeDasharray="5 5" /> : null}
             <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<Dica />} />
             <Scatter data={pontos}>
               {pontos.map((ponto) => (
-                <Cell key={ponto.produtoId} fill={CORES_CLASSE[ponto.classe] || '#616161'} />
+                <Cell key={ponto.produtoId} fill={CORES_CLASSE[ponto.classe] || 'var(--cor-incompleto)'} />
               ))}
             </Scatter>
           </ScatterChart>

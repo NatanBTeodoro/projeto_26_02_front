@@ -17,10 +17,11 @@
   gap: 0.75rem;
   align-items: center;
   justify-content: space-between;
-  margin: 0.8rem var(--padding-pagina) 0;
+  width: min(100% - (2 * var(--padding-pagina)), var(--largura-conteudo) - (2 * var(--padding-pagina)));
+  margin: 0.8rem auto 0;
   padding: 0.7rem 0.9rem;
   border-radius: var(--raio);
-  background: rgba(196, 92, 38, 0.12);
+  background: color-mix(in srgb, var(--cor-marca) 12%, var(--cor-superficie));
   border: 1px solid var(--cor-linha);
 }
 

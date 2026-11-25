@@ -280,7 +280,7 @@ function Cadastros() {
               </div>
             </form>
             {exclusao ? (
-              <div className="pagina__painel">
+              <div className="recorte">
                 <p>O que fazer com as informações de {exclusao.nome}?</p>
                 {exclusao.status !== 'FECHADO' ? (
                   <Botao texto="Manter informações" variante="secundario" onClick={() => fechar(exclusao)} />
