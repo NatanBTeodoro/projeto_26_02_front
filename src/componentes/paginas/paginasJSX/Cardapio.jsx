@@ -72,7 +72,10 @@ function Cardapio() {
                     {produto.descricao ? <p>{produto.descricao}</p> : null}
                     {produto.ativo ? null : <Badge texto="Indisponível" variante="erro" />}
                   </div>
-                  <span className="cardapio__preco">{formatarMoeda(produto.precoAtual)}</span>
+                  <span className="cardapio__preco">
+                    {formatarMoeda(produto.precoAtual)}
+                    {produto.custoAtual != null ? ` · custo ${formatarMoeda(produto.custoAtual)}` : ''}
+                  </span>
                 </article>
               ))}
             </div>

@@ -17,6 +17,7 @@ const MENUS = {
         { href: '/matriz', rotulo: 'Matriz' },
         { href: '/restaurantes', rotulo: 'Restaurantes' },
         { href: '/cadastros', rotulo: 'Cadastros' },
+        { href: '/funcoes', rotulo: 'Funções' },
         { href: '/suporte', rotulo: 'Suporte / Reclamações' },
         { href: '/perfil', rotulo: 'Perfil' },
       ],

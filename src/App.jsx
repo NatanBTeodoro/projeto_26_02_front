@@ -13,6 +13,7 @@ import Perfil from './componentes/paginas/paginasJSX/Perfil'
 import Suporte from './componentes/paginas/paginasJSX/Suporte'
 import Reclamacoes from './componentes/paginas/paginasJSX/Reclamacoes'
 import Cardapio from './componentes/paginas/paginasJSX/Cardapio'
+import FuncoesRede from './componentes/paginas/paginasJSX/FuncoesRede'
 
 function proteger(pagina, perfis) {
   return <RotaPerfil perfis={perfis}>{pagina}</RotaPerfil>
@@ -33,6 +34,7 @@ function App() {
         <Route path="/matriz" element={proteger(<Matriz />, ['ADMINISTRADOR'])} />
         <Route path="/restaurantes" element={proteger(<Restaurantes />, ['ADMINISTRADOR'])} />
         <Route path="/cadastros" element={proteger(<Cadastros />, ['ADMINISTRADOR', 'GESTOR'])} />
+        <Route path="/funcoes" element={proteger(<FuncoesRede />, ['ADMINISTRADOR'])} />
         <Route path="/produtos" element={proteger(<Produtos />, ['ADMINISTRADOR', 'GESTOR'])} />
         <Route path="/pedidos" element={proteger(<Pedidos />, ['ADMINISTRADOR', 'GESTOR', 'USUARIO'])} />
         <Route path="/perfil" element={proteger(<Perfil />, ['TI', 'ADMINISTRADOR', 'GESTOR', 'USUARIO'])} />

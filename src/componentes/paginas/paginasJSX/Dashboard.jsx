@@ -399,6 +399,9 @@ function DashboardGestor() {
         <Periodo de={de} ate={ate} setDe={setDe} setAte={setAte} onSubmit={consultar} />
         {painel ? (
           <>
+            {painel.faturamento == null ? (
+              <p>sem permissão para ver valores financeiros</p>
+            ) : null}
             <div className="cartoes">
               <section className="pagina__painel cartao">
                 <span>Faturamento</span>

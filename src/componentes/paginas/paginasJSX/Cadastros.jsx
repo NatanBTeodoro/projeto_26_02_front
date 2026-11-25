@@ -9,6 +9,7 @@ import { apiJson } from '../../../services/api'
 import { endpoints } from '../../../services/endpoints'
 import { emVisaoGestor, lerSessao, visaoBloqueada } from '../../../utils/sessao'
 import { formatarBooleano, rotuloPerfil, rotuloStatus, validarSenha, DICA_SENHA } from '../../../utils/formatacao'
+import { PainelFuncoes, podeAtribuir } from './FuncoesEquipe'
 
 const perfis = [
   { valor: 'GESTOR', rotulo: 'Gestor' },
@@ -32,6 +33,8 @@ function Cadastros() {
   const [editandoUsuario, setEditandoUsuario] = useState(null)
   const [erro, setErro] = useState('')
   const [aviso, setAviso] = useState('')
+  const [minhasFuncoes, setMinhasFuncoes] = useState([])
+  const [alvoFuncoes, setAlvoFuncoes] = useState(null)
 
   async function carregar() {
     const pedidos = [apiJson(gestor ? endpoints.usuarios : `${endpoints.usuarios}${restauranteId ? `?restauranteId=${restauranteId}` : ''}`)]
@@ -48,6 +51,12 @@ function Cadastros() {
   useEffect(() => {
     carregar().catch((falha) => setErro(falha.message))
   }, [restauranteId])
+
+  useEffect(() => {
+    apiJson(endpoints.funcoesMinhas)
+      .then(setMinhasFuncoes)
+      .catch(() => setMinhasFuncoes([]))
+  }, [])
 
   async function salvarRestaurante(evento) {
     evento.preventDefault()
@@ -394,6 +403,9 @@ function Cadastros() {
                         {podeSenha(usuario) ? (
                           <Botao texto="Nova senha" variante="fantasma" onClick={() => redefinirSenha(usuario)} />
                         ) : null}
+                        {podeAtribuir(minhasFuncoes) ? (
+                          <Botao texto="Atribuir funções" variante="secundario" onClick={() => setAlvoFuncoes(usuario)} />
+                        ) : null}
                       </>
                     ) : null}
                   </td>
@@ -401,6 +413,14 @@ function Cadastros() {
               ))}
             </tbody>
           </table>
+          {alvoFuncoes ? (
+            <PainelFuncoes
+              usuario={alvoFuncoes}
+              minhas={minhasFuncoes}
+              gestor={gestor}
+              onFechar={() => setAlvoFuncoes(null)}
+            />
+          ) : null}
         </section>
       </div>
     </TemplateAutenticado>
